@@ -1,4 +1,5 @@
-(function () {
+const tab = await tranquil.getActiveTab();
+await tab.evaluate(() => {
   if (document.getElementById('tranquil-copy-branch')) return;
   const branchEl = document.querySelector('.head-ref');
   if (!branchEl) return;
@@ -26,4 +27,4 @@
   });
 
   branchEl.after(btn);
-})();
+});

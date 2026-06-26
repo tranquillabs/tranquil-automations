@@ -6,7 +6,8 @@ Tranquil automations run JavaScript against any web app loaded in a webview tab.
 
 | Service | Automation |
 |---|---|
-| **GitHub** | **Copy branch name — adds a "Copy branch" button next to the branch name on any PR page** |
+| **example.com** | **Hello world — appends a styled note to the page confirming the automation ran** |
+| GitHub | Copy branch name — adds a "Copy branch" button next to the branch name on any PR page |
 
 ---
 

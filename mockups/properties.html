@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Properties — Customer Onboarding</title>
+  <link rel="stylesheet" href="mockup.css" />
+</head>
+<body>
+  <div class="properties">
+    <header class="mock-header">
+      <span class="mock-header__title">Properties</span>
+    </header>
+    <div class="properties__scroll">
+
+      <!-- Plain properties -->
+      <div class="prop-grid">
+        <div class="prop-row">
+          <div class="prop-label"><span class="glyph">◆</span> Type</div>
+          <div class="prop-value">Responsibility</div>
+        </div>
+        <div class="prop-row">
+          <div class="prop-label"><span class="glyph">○</span> Status</div>
+          <div class="prop-value"><span class="status-badge"><span class="dot"></span>Open</span></div>
+        </div>
+        <div class="prop-row">
+          <div class="prop-label"><span class="glyph">▦</span> Aliases</div>
+          <div class="prop-value">Onboarding</div>
+        </div>
+        <div class="prop-row">
+          <div class="prop-label"><span class="glyph">⧉</span> Notion id</div>
+          <div class="prop-value mono">7b2e-4c19-a0d3</div>
+        </div>
+        <div class="prop-row">
+          <div class="prop-label"><span class="glyph">🗓</span> Created</div>
+          <div class="prop-value">Jan 6, 2025</div>
+        </div>
+      </div>
+
+      <button class="add-affordance"><span class="plus">+</span> Add property</button>
+
+      <div class="prop-divider"></div>
+
+      <!-- Relationship groups (wikilink-valued fields) -->
+      <div class="rel-group">
+        <div class="rel-group__label">belongs_to</div>
+        <div class="rel-chips">
+          <a class="link-chip" href="#"><span class="link-chip__icon">◈</span> Operations</a>
+        </div>
+        <button class="add-affordance"><span class="plus">+</span> Add belongs_to</button>
+      </div>
+
+      <div class="rel-group">
+        <div class="rel-group__label">has_measures</div>
+        <div class="rel-chips">
+          <a class="link-chip" href="#"><span class="link-chip__icon">◈</span> Activation Rate</a>
+          <a class="link-chip" href="#"><span class="link-chip__icon">◈</span> Time to Value</a>
+        </div>
+        <button class="add-affordance"><span class="plus">+</span> Add has_measures</button>
+      </div>
+
+      <div class="rel-group">
+        <div class="rel-group__label">has_procedures</div>
+        <div class="rel-chips">
+          <a class="link-chip" href="#"><span class="link-chip__icon">◈</span> Welcome Sequence</a>
+          <a class="link-chip" href="#"><span class="link-chip__icon">◈</span> Account Setup</a>
+        </div>
+        <button class="add-affordance"><span class="plus">+</span> Add has_procedures</button>
+      </div>
+
+      <div class="prop-divider"></div>
+
+      <!-- Children -->
+      <div class="rel-group">
+        <div class="rel-group__label">Children</div>
+        <div class="rel-chips">
+          <a class="link-chip" href="#"><span class="link-chip__icon">▸</span> Activation Rate</a>
+          <a class="link-chip" href="#"><span class="link-chip__icon">▸</span> Time to Value</a>
+          <a class="link-chip" href="#"><span class="link-chip__icon">▸</span> Welcome Sequence</a>
+        </div>
+        <button class="add-affordance"><span class="plus">+</span> Create &amp; open child</button>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

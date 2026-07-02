@@ -2,3 +2,57 @@
 
 .tranquil-automations {
 }
+
+// Custom right-aligned tab-bar controls injected by lib/pane-controls.js into
+// center + right-dock panes. Pinned right via margin-left:auto + a high flex
+// `order` so real tabs never displace it. Items registered with an action get
+// the `-item-action` modifier; unregistered panes fall back to placeholder
+// mimics with only the base `-item` class.
+.tab-bar .tranquil-pane-controls {
+  order: 9999;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  align-self: center;
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+
+  // Inherit the tab-bar's text color (set by the active theme) rather than
+  // ui-variables — the business themes don't export ui-variables, so those
+  // resolve to light-theme defaults and render invisibly on dark. Opacity gives
+  // the muted look; a neutral translucent hover works on both light and dark.
+  .tranquil-pane-controls-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    opacity: 0.5;
+    font-size: 14px;
+    line-height: 1;
+    cursor: default;
+    transition: background 0.12s ease, opacity 0.12s ease;
+
+    &:hover {
+      opacity: 1;
+      background: rgba(127, 127, 127, 0.18);
+    }
+  }
+
+  // Wired (actionable) items read slightly stronger and show a click affordance.
+  .tranquil-pane-controls-item-action {
+    opacity: 0.8;
+    cursor: pointer;
+
+    &:active {
+      background: rgba(127, 127, 127, 0.3);
+    }
+  }
+}

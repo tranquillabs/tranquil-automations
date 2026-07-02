@@ -22,6 +22,11 @@
       "versions": {
         "1.0.0": "provideAutomations"
       }
+    },
+    "pane-controls": {
+      "versions": {
+        "1.0.0": "providePaneControls"
+      }
     }
   },
   "consumedServices": {

@@ -15,7 +15,8 @@
   },
   "dependencies": {
     "puppeteer-core": "^22.0.0",
-    "tranquil-config": "link:../tranquil-config"
+    "tranquil-config": "link:../tranquil-config",
+    "tranquil-rpc": "link:../tranquil-rpc"
   },
   "providedServices": {
     "tranquil-automations": {

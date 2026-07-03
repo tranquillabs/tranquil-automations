@@ -360,5 +360,20 @@
     </main>
 
   </div>
+
+  <!-- Self-register this view's tab-bar controls over tranquil-rpc once the host injects the
+       runtime (trusted file:// page). Actions run here, in the page. -->
+  <script>
+    addEventListener("tranquilhost:ready", () => {
+      window.tranquilHost.paneControls.register([
+        { id: "reload", glyph: "⟳", title: "Reload view", action: () => location.reload() },
+        { id: "scroll-top", glyph: "⤒", title: "Scroll to top", action: () =>
+            document.querySelectorAll(".editor__scroll,.note-list__scroll,.properties__scroll")
+              .forEach((el) => el.scrollTo({ top: 0, behavior: "smooth" })) },
+        { id: "about", glyph: "ⓘ", title: "About", action: () =>
+            window.tranquilHost.notify("Tranquil business-theme main view") },
+      ]);
+    });
+  </script>
 </body>
 </html>

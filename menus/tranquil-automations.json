@@ -1,0 +1,13 @@
+{
+  "menu": [
+    {
+      "label": "View",
+      "submenu": [
+        {
+          "label": "Sync Tree View With Active Tab",
+          "command": "tranquil-automations:toggle-tree-view-sync"
+        }
+      ]
+    }
+  ]
+}

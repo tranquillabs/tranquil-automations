@@ -56,3 +56,79 @@
     }
   }
 }
+
+// Hover rename/delete buttons injected onto tree-view rows by lib/row-actions.js.
+// row-actions.js injects the group only on the hovered row (and removes it on
+// leave), so no CSS hover toggle is needed. `position: sticky` pins the group to
+// the tree-view's visible right edge — the tree-view scrolls horizontally
+// (rows are min-content wide), so a plain `right` would land off-screen for long
+// filenames. Colours follow the row's own text color (inherit) + opacity — the
+// business themes don't export ui-variables (see the note above), so @text-color-*
+// would render invisibly.
+.tree-view {
+  .tq-row-actions {
+    position: fixed; // top/left set by row-actions.js from the tree-view rect
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px; // enough that a hovered button's pop/glow doesn't reach its neighbour
+    padding: 1px 4px;
+    border-radius: 6px;
+    color: inherit; // keep the row's text color even though we're position:fixed
+    z-index: 10;
+    // background is set by row-actions.js to the tree-view's panel color so the
+    // filename doesn't show through; the shadow lifts it off the row.
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+  }
+
+  .tq-row-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    // !important: the business theme sets `button { background: … !important }`.
+    background: transparent !important;
+    color: inherit;
+    opacity: 0.85;
+    cursor: pointer;
+    transition: background 0.12s ease, box-shadow 0.12s ease,
+      transform 0.12s ease, opacity 0.12s ease, color 0.12s ease;
+
+    // Both buttons get the same pronounced treatment on hover: a solid colour
+    // fill with a white icon, a slight pop, and a coloured glow so it clearly
+    // lifts off the chip. The hue signals the action (blue = rename, red = delete).
+    &:hover {
+      opacity: 1;
+      color: #fff;
+      transform: scale(1.15);
+    }
+    &:active {
+      transform: scale(1.05);
+    }
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+  }
+
+  // !important on the fills to beat the theme's `button:hover { background: … !important }`.
+  .tq-row-action[data-action="rename"]:hover {
+    background: #4a86e8 !important;
+    box-shadow: 0 0 0 1px #4a86e8, 0 2px 7px rgba(74, 134, 232, 0.6);
+  }
+  .tq-row-action[data-action="rename"]:active {
+    background: #3b6fc4 !important;
+  }
+  .tq-row-action[data-action="delete"]:hover {
+    background: #e2504a !important;
+    box-shadow: 0 0 0 1px #e2504a, 0 2px 7px rgba(226, 80, 74, 0.6);
+  }
+  .tq-row-action[data-action="delete"]:active {
+    background: #c53f39 !important;
+  }
+}

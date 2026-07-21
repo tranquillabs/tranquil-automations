@@ -35,6 +35,11 @@
       "versions": {
         "1.0.0": "consumeTabs"
       }
+    },
+    "atom.file-icons": {
+      "versions": {
+        "1.0.0": "consumeFileIcons"
+      }
     }
   }
 }

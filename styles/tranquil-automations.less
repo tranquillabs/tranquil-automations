@@ -3,6 +3,127 @@
 .tranquil-automations {
 }
 
+// Vertical tab list panel (lib/vertical-tabs-view.js) — a right-dock navigator
+// that mirrors the center pane's open tabs; clicking a row activates that tab.
+// Colours come from the standard ui-variables (imported above), which the
+// business themes now export (styles/ui-variables.less) — so this renders
+// correctly on both light and dark with no inherit/rgba() workarounds.
+.tranquil-vertical-tabs {
+  height: 100%;
+  overflow-y: auto;
+  background: @tool-panel-background-color;
+  color: @text-color;
+
+  .tranquil-vertical-tabs-list {
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .tranquil-vertical-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    border-radius: @component-border-radius;
+    cursor: pointer;
+    user-select: none;
+    color: @text-color;
+    transition: background 0.12s ease;
+
+    &:hover {
+      background: @background-color-highlight;
+    }
+    &.active {
+      background: @background-color-selected;
+    }
+
+    // Icon slot — fixed size so labels line up with or without an icon. Holds a
+    // <img> favicon (browser tabs) or an octicon file-type glyph (editor/file
+    // rows, via the atom.file-icons service).
+    .tab-icon {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: @text-color-subtle;
+
+      // Octicon glyph (added as `icon icon-<name>` classes). Size to the slot and
+      // clear octicons' default inline margins so it centers.
+      &.icon::before {
+        margin: 0;
+        font-size: 15px;
+        line-height: 1;
+      }
+
+      img {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        object-fit: contain;
+      }
+    }
+
+    .title {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-size: @font-size;
+    }
+    // Bold the active row too, so it stays distinguishable if a palette maps
+    // hover and selected to near-identical surfaces.
+    &.active .title {
+      font-weight: 600;
+    }
+    // Unsaved indicator.
+    &.modified .title::after {
+      content: "•";
+      margin-left: 4px;
+      color: @text-color-subtle;
+    }
+
+    .close {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      border: none;
+      border-radius: 4px;
+      color: @text-color-subtle;
+      opacity: 0;
+      cursor: pointer;
+      background: transparent;
+      transition: opacity 0.12s ease, background 0.12s ease, color 0.12s ease;
+
+      &::before {
+        content: "×";
+        font-size: 15px;
+        line-height: 1;
+      }
+      &:hover {
+        background: @button-background-color-hover;
+        color: @text-color;
+        opacity: 1;
+      }
+    }
+
+    &:hover .close,
+    &.active .close {
+      opacity: 0.7;
+    }
+  }
+}
+
 // Custom right-aligned tab-bar controls injected by lib/pane-controls.js into
 // center + right-dock panes. Pinned right via margin-left:auto + a high flex
 // `order` so real tabs never displace it. Items registered with an action get
@@ -90,8 +211,7 @@
     padding: 0;
     border: none;
     border-radius: 4px;
-    // !important: the business theme sets `button { background: … !important }`.
-    background: transparent !important;
+    background: transparent;
     color: inherit;
     opacity: 0.85;
     cursor: pointer;
@@ -116,19 +236,20 @@
     }
   }
 
-  // !important on the fills to beat the theme's `button:hover { background: … !important }`.
+  // Action-hue fills (blue = rename, red = delete). These selectors are more
+  // specific than the theme's generic button rule, so no !important is needed.
   .tq-row-action[data-action="rename"]:hover {
-    background: #4a86e8 !important;
+    background: #4a86e8;
     box-shadow: 0 0 0 1px #4a86e8, 0 2px 7px rgba(74, 134, 232, 0.6);
   }
   .tq-row-action[data-action="rename"]:active {
-    background: #3b6fc4 !important;
+    background: #3b6fc4;
   }
   .tq-row-action[data-action="delete"]:hover {
-    background: #e2504a !important;
+    background: #e2504a;
     box-shadow: 0 0 0 1px #e2504a, 0 2px 7px rgba(226, 80, 74, 0.6);
   }
   .tq-row-action[data-action="delete"]:active {
-    background: #c53f39 !important;
+    background: #c53f39;
   }
 }

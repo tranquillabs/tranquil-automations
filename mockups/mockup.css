@@ -225,11 +225,11 @@ body {
   min-width: 240px;
   display: flex;
   flex-direction: column;
-  background: var(--surface-sidebar);
+  background: var(--surface-panel);
   border-right: 1px solid var(--border-default);
   overflow: hidden;
 }
-.note-list .mock-header { background: var(--surface-sidebar); }
+.note-list .mock-header { background: var(--surface-panel); }
 .note-list__scroll {
   flex: 1;
   overflow-y: auto;
@@ -598,9 +598,9 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--surface-sidebar);
+  background: var(--surface-panel);
 }
-.properties .mock-header { background: var(--surface-sidebar); }
+.properties .mock-header { background: var(--surface-panel); }
 .properties__scroll {
   flex: 1;
   overflow-y: auto;

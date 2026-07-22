@@ -11,7 +11,10 @@
 .tranquil-vertical-tabs {
   height: 100%;
   overflow-y: auto;
-  background: @tool-panel-background-color;
+  // Panel surface (matches the tree-view + the right/bottom dock pane background),
+  // not the recessed @tool-panel-background-color, so the navigator reads as one
+  // continuous panel with its pane rather than a darker inset.
+  background: @inset-panel-background-color;
   color: @text-color;
 
   .tranquil-vertical-tabs-list {

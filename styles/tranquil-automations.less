@@ -80,10 +80,10 @@
       text-overflow: ellipsis;
       font-size: @font-size;
     }
-    // Bold the active row too, so it stays distinguishable if a palette maps
-    // hover and selected to near-identical surfaces.
+    // The active row is distinguished by its selected background (not a heavier
+    // weight), keeping the list uniformly at Inter 400.
     &.active .title {
-      font-weight: 600;
+      font-weight: 400;
     }
     // Unsaved indicator.
     &.modified .title::after {

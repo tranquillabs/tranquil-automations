@@ -13,6 +13,9 @@
   "engines": {
     "atom": ">=1.0.0 <2.0.0"
   },
+  "deserializers": {
+    "TranquilVerticalTabsView": "deserializeVerticalTabs"
+  },
   "dependencies": {
     "puppeteer-core": "^22.0.0",
     "tranquil-config": "link:../tranquil-config",

@@ -3,6 +3,19 @@
 .tranquil-automations {
 }
 
+// Fade for a freshly-opened vertical-tab row (see `.just-added`): a clearly
+// visible flat tint (works on light and dark) easing out to nothing over ~1s.
+// vertical-tabs-view.js sets a negative animation-delay per render so the fade
+// resumes rather than restarting when a loading tab re-renders the list.
+@keyframes tranquil-vertical-tab-fade {
+  from {
+    background: rgba(74, 134, 232, 0.45);
+  }
+  to {
+    background: rgba(74, 134, 232, 0);
+  }
+}
+
 // Vertical tab list panel (lib/vertical-tabs-view.js) — a right-dock navigator
 // that mirrors the center pane's open tabs; clicking a row activates that tab.
 // Colours come from the standard ui-variables (imported above), which the
@@ -42,6 +55,15 @@
     }
     &.active {
       background: @background-color-selected;
+    }
+
+    // New-tab cue: `vertical-tabs-view.js` tags a freshly-added row `just-added`
+    // for ~1s; the highlight fades out over that second (see the keyframe above).
+    // `forwards` holds the finished (transparent) state until the class is
+    // removed. Placed after `&:hover`/`&.active` so it wins.
+    &.just-added,
+    &.just-added:hover {
+      animation: tranquil-vertical-tab-fade 1s ease-out forwards;
     }
 
     // Icon slot — fixed size so labels line up with or without an icon. Holds a

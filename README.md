@@ -1,4 +1,4 @@
-# url-manager package
+# tranquil-automations
 
 A short description of your package.
 

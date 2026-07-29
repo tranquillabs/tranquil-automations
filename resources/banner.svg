@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="800" height="400" fill="none" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" role="img" aria-label="tranquil-automations — running an automation against a live tab">
+  <defs>
+    <clipPath id="type1"><rect x="40" y="84" width="0" height="30"><animate attributeName="width" values="0;300" dur="1.3s" begin="0.5s" fill="freeze" calcMode="linear"/></rect></clipPath>
+  </defs>
+
+  <!-- window frame -->
+  <rect x="1" y="1" width="798" height="398" rx="4" fill="#1a1d24" stroke="#4c525c" stroke-width="1"/>
+  <rect x="1.5" y="1.5" width="797" height="42" fill="#15181e"/>
+  <line x1="1" y1="43" x2="799" y2="43" stroke="#4c525c" stroke-opacity="0.6"/>
+  <circle cx="26" cy="22" r="6" fill="#e8735f"/>
+  <circle cx="48" cy="22" r="6" fill="#e5a94d"/>
+  <circle cx="70" cy="22" r="6" fill="#4ccb86"/>
+  <text x="400" y="27" text-anchor="middle" font-size="14" fill="#7f838c" letter-spacing="0.5">tranquil-automations</text>
+
+  <!-- transcript -->
+  <g font-size="17">
+    <text x="40" y="106" clip-path="url(#type1)"><tspan fill="#78A4FF">$</tspan><tspan fill="#ece8df" dx="7">tranquil run onboarding.js</tspan></text>
+    <text x="40" y="144" opacity="0"><tspan fill="#78A4FF">→</tspan><tspan fill="#b4afa6" dx="7">new signup · Acme Corp</tspan><animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2s" fill="freeze"/></text>
+    <text x="40" y="182" opacity="0"><tspan fill="#78A4FF">✓</tspan><tspan fill="#ece8df" dx="7">invoice sent · CRM updated · #sales pinged</tspan><animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2.7s" fill="freeze"/></text>
+    <text x="40" y="220" opacity="0"><tspan fill="#78A4FF">✓</tspan><tspan fill="#b4afa6" dx="7">done in 1.2s — 0 manual steps</tspan><animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="3.4s" fill="freeze"/></text>
+    <text x="40" y="258" opacity="0" fill="#78A4FF">$<animate attributeName="opacity" from="0" to="1" dur="0.3s" begin="4s" fill="freeze"/></text>
+    <rect x="62" y="243" width="11" height="19" fill="#78A4FF" opacity="0">
+      <animate attributeName="opacity" values="0;0;1" keyTimes="0;0.999;1" dur="4.1s" fill="freeze"/>
+      <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.5;0.5;1" dur="1.05s" begin="4.1s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+
+  <text x="778" y="388" text-anchor="end" font-size="12" fill="#5b6068" letter-spacing="0.5">tranquil</text>
+</svg>

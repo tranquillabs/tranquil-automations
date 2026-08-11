@@ -1,7 +1,7 @@
 {
   "name": "tranquil-automations",
   "main": "./lib/tranquil-automations",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Write and run JavaScript automations against any web app",
   "keywords": [],
   "repository": "https://github.com/tranquillabs/tranquil-automations",

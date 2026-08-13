@@ -1,5 +1,5 @@
 '.platform-darwin atom-workspace':
-  'cmd-shift-r': 'tranquil-automations:run-in-webview'
+  'cmd-shift-r': 'tranquil-automations:run-automation'
   'alt-cmd-w': 'tranquil-automations:close-all-center-tabs'
 
 '.platform-win32 atom-workspace, .platform-linux atom-workspace':

@@ -2,7 +2,7 @@
   "name": "tranquil-automations",
   "main": "./lib/tranquil-automations",
   "version": "0.1.1",
-  "description": "Write and run JavaScript automations against any web app",
+  "description": "Write and run sandboxed TypeScript automations against any web app",
   "keywords": [],
   "repository": "https://github.com/tranquillabs/tranquil-automations",
   "author": {
@@ -14,10 +14,10 @@
     "atom": ">=1.0.0 <2.0.0"
   },
   "deserializers": {
-    "TranquilVerticalTabsView": "deserializeVerticalTabs"
+    "TranquilVerticalTabsView": "deserializeVerticalTabs",
+    "TranquilAutomationRunsView": "deserializeRunsPanel"
   },
   "dependencies": {
-    "puppeteer-core": "^22.0.0",
     "tranquil-config": "link:../tranquil-config",
     "tranquil-rpc": "link:../tranquil-rpc"
   },

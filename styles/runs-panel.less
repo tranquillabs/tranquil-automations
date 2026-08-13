@@ -1,0 +1,133 @@
+// Automation Runs panel (bottom dock). Theme-variable driven; business themes may refine.
+@import "ui-variables";
+
+.tranquil-runs-panel {
+  display: flex;
+  height: 100%;
+  background: @tool-panel-background-color;
+  color: @text-color;
+  font-size: @font-size;
+
+  .runs-list {
+    flex: 0 0 240px;
+    margin: 0;
+    padding: 4px 0;
+    list-style: none;
+    overflow-y: auto;
+    // No border here: the list's scrollbar already sits at this edge, and a border beside it
+    // reads as a second parallel line (the "double line"). The scrollbar is the separator when
+    // the list overflows; the divider below is a hover-only drag handle, not a drawn line.
+
+    .runs-empty {
+      padding: 8px 12px;
+      color: @text-color-subtle;
+    }
+
+    .runs-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      cursor: default;
+      white-space: nowrap;
+      overflow: hidden;
+
+      &.selected {
+        background: @background-color-selected;
+      }
+
+      .state-dot {
+        flex: none;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: @text-color-subtle;
+      }
+      &.state-running .state-dot {
+        background: @text-color-info;
+      }
+      &.state-succeeded .state-dot {
+        background: @text-color-success;
+      }
+      &.state-failed .state-dot {
+        background: @text-color-error;
+      }
+      &.state-cancelled .state-dot,
+      &.state-timed-out .state-dot {
+        background: @text-color-warning;
+      }
+
+      .run-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .run-meta {
+        margin-left: auto;
+        color: @text-color-subtle;
+        font-size: 0.9em;
+      }
+    }
+  }
+
+  // Draggable divider: a transparent col-resize handle straddling the list/detail boundary
+  // (net-zero layout via negative margins). It draws no line of its own — so the only vertical
+  // element at the boundary is the list's scrollbar — and reveals a faint highlight on hover.
+  .runs-divider {
+    flex: 0 0 auto;
+    width: 7px;
+    margin: 0 -4px 0 -3px; // straddles the boundary; net 0 layout
+    position: relative;
+    z-index: 2;
+    cursor: col-resize;
+    background: transparent;
+
+    &:hover {
+      background: fade(@text-color-info, 22%);
+    }
+  }
+
+  .runs-detail {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+
+    .run-header {
+      display: flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-bottom: 1px solid @base-border-color;
+
+      .run-title {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .run-cancel {
+        margin-left: auto;
+      }
+    }
+
+    .run-output {
+      flex: 1;
+      margin: 0;
+      padding: 6px 10px;
+      overflow: auto;
+      background: transparent;
+      color: @text-color;
+      font-family: var(--editor-font-family, monospace);
+      font-size: 0.95em;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  }
+}
+
+// While dragging the divider, keep the resize cursor everywhere and suppress text selection
+// (the mouse leaves the thin divider during a fast drag).
+body.tranquil-runs-resizing {
+  cursor: col-resize;
+  user-select: none;
+}

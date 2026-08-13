@@ -48,6 +48,16 @@ export const ui = {
   ) {
     await hostCall((h) => h.ui.notify(message, options.level ?? "info"));
   },
+  /** Terminal-style status line: log to the run output AND surface a popup. */
+  async status(
+    message: string,
+    options: { level?: "info" | "success" | "warning" | "error" } = {},
+  ) {
+    const level = options.level ?? "info";
+    if (level === "error" || level === "warning") console.error(message);
+    else console.log(message);
+    await ui.notify(message, { level });
+  },
 };
 
 /** The app clipboard. */

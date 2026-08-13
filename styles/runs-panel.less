@@ -96,6 +96,7 @@
     .run-header {
       display: flex;
       align-items: center;
+      gap: 6px;
       padding: 4px 10px;
       border-bottom: 1px solid @base-border-color;
 
@@ -105,8 +106,17 @@
         white-space: nowrap;
       }
 
-      .run-cancel {
+      // Right-aligned action buttons (Copy, Cancel).
+      .run-actions {
+        flex: none;
         margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .run-copy.copied {
+        color: @text-color-success;
       }
     }
 
@@ -121,6 +131,10 @@
       font-size: 0.95em;
       white-space: pre-wrap;
       word-break: break-word;
+      // Focusable for cmd-c copy (see runs-panel.js); no focus ring on this read-only view.
+      &:focus {
+        outline: none;
+      }
     }
   }
 }

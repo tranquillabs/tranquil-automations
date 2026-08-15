@@ -46,6 +46,12 @@
       &.state-running .state-dot {
         background: @text-color-info;
       }
+      // A debug session stopped at a breakpoint (ADR-0025): hollow, so "waiting for you" reads
+      // as distinct from "working" at a glance.
+      &.state-paused .state-dot {
+        background: transparent;
+        box-shadow: inset 0 0 0 2px @text-color-info;
+      }
       &.state-succeeded .state-dot {
         background: @text-color-success;
       }
@@ -118,6 +124,28 @@
       .run-copy.copied {
         color: @text-color-success;
       }
+
+      // Cancelling takes a moment — CANCEL frame, then SIGTERM, then SIGKILL — so the button says
+      // so instead of sitting inert. Same green as Copy's confirmation, plus a spinner, because
+      // unlike Copy this is work in progress rather than a result.
+      .run-cancel.cancelling {
+        color: @text-color-success;
+        pointer-events: none; // a second press cannot help; the escalation is already running
+
+        &::after {
+          content: "";
+          display: inline-block;
+          width: 0.7em;
+          height: 0.7em;
+          margin-left: 0.45em;
+          vertical-align: -0.05em;
+          box-sizing: border-box;
+          border: 1.5px solid fade(@text-color-success, 30%);
+          border-top-color: @text-color-success;
+          border-radius: 50%;
+          animation: tq-cancel-spin 0.7s linear infinite;
+        }
+      }
     }
 
     .run-output {
@@ -144,4 +172,10 @@
 body.tranquil-runs-resizing {
   cursor: col-resize;
   user-select: none;
+}
+
+@keyframes tq-cancel-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

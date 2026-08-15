@@ -19,7 +19,23 @@ function envCdpPort(): string {
   }
 }
 const CDP_BASE = `http://127.0.0.1:${envCdpPort()}`;
-const DEFAULT_CALL_TIMEOUT_MS = 30000;
+
+// Debug runs get a much longer per-call timeout (ADR-0025). Code inside a `tab.evaluate()`
+// callback executes in the BROWSER page, not here, so the automation's own debugger cannot reach
+// it — the way to stop in there is a `debugger;` statement with the page's DevTools open. That
+// pause blocks the evaluate call for as long as someone is reading the page, and 30 s of human
+// attention is nothing; the call would fail with "CDP call timed out" mid-inspection.
+//
+// Only debug runs are affected: an ordinary run keeps the 30 s ceiling, so a genuinely stuck page
+// still fails fast instead of hanging the run.
+function isDebugRun(): boolean {
+  try {
+    return Deno.env.get("TRANQUIL_TRIGGER") === "debug";
+  } catch {
+    return false;
+  }
+}
+const DEFAULT_CALL_TIMEOUT_MS = isDebugRun() ? 10 * 60_000 : 30000;
 
 export interface TargetInfo {
   id: string;

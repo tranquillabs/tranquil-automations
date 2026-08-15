@@ -20,5 +20,22 @@ if (!entry) {
 // native error (with the real file:line) and exits non-zero — the honest DX the direct-run
 // approach gave. On success we exit 0 promptly, abandoning the open sockets (the host tears
 // the session down when the socket closes — ADR-0022's "process death revokes everything").
-await import(entry);
+try {
+  await import(entry);
+} finally {
+  // Completion sentinel for debug runs (ADR-0025). A Deno child cannot exit while a V8 inspector
+  // is attached, so `Deno.exit(0)` below does not actually end the process during a debug session
+  // — the host has to detach first. But the host has no way to observe "the user's top-level
+  // finished": no CDP event marks it, and the child is still alive. Without a signal the run sat
+  // at "running" forever and its debug controls never went away.
+  //
+  // A `debugger` statement is exactly that signal, and it is free: with no inspector attached
+  // (every ordinary run) it is a no-op, so this costs normal runs nothing. The debug session
+  // recognises a pause in this file as "script done" and detaches, which lets the process exit
+  // and the run resolve.
+  //
+  // In `finally` rather than after the await, so a script that throws still reports completion —
+  // otherwise a failing debug run would be the one that hangs.
+  debugger;
+}
 Deno.exit(0);

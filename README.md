@@ -27,6 +27,30 @@ and tab UI enhancements.
 - **Named commands** — register any `.js` as an "Automations:" palette command.
 - **Workspace UI** — vertical tab-list dock panel, tree-view row actions, folder-count pills, pane controls.
 
+## Permissions
+
+Every automation declares what it may reach, in the leading comment block. A script
+without a `@permissions` line is refused.
+
+```ts
+// @permissions browser net=api.github.com
+// @timeout 15m
+```
+
+| Grant | Allows |
+| --- | --- |
+| `none` | Nothing beyond the script's own folder |
+| `browser` | Drive tabs — open pages and run code in them, in your signed-in sessions |
+| `clipboard` | Read and write the system clipboard |
+| `net=host,…` | Network access to those hosts |
+| `read=path,…` / `write=path,…` | Files outside the script's folder |
+| `env=NAME,…` | Environment variables |
+| `run=bin,…` | Run commands (effectively full user privilege) |
+| `import=host,…` | Module imports beyond `jsr.io` |
+
+A script's own folder is always readable and writable. Anything requesting more asks for
+approval the first time it runs, remembered until the declaration changes.
+
 ## Install
 
 Bundled with Tranquil Studio. To run from source, follow the

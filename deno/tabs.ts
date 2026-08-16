@@ -120,7 +120,7 @@ export class Tab implements AsyncDisposable {
    * captureScreenshot webview guests — verified, it times out even for visible tabs.
    */
   async screenshot(): Promise<Uint8Array> {
-    const b64: string = await hostCall((h) => h.tabs.screenshot(this.#descriptor.tabId));
+    const b64: string = await hostCall((h) => h.tabs.screenshot(this.#descriptor.tabId), { capability: "tabs", grant: "browser" });
     return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   }
 
@@ -134,7 +134,7 @@ export class Tab implements AsyncDisposable {
       }
       this.#conn = null;
     }
-    await hostCall((h) => h.tabs.close(this.#descriptor.tabId));
+    await hostCall((h) => h.tabs.close(this.#descriptor.tabId), { capability: "tabs", grant: "browser" });
   }
 
   async [Symbol.asyncDispose](): Promise<void> {
@@ -145,18 +145,18 @@ export class Tab implements AsyncDisposable {
 export const tabs = {
   /** The tab the user is looking at (or most recently was). */
   async active(): Promise<Tab> {
-    return new Tab(await hostCall((h) => h.tabs.active()));
+    return new Tab(await hostCall((h) => h.tabs.active(), { capability: "tabs", grant: "browser" }));
   },
 
   /** Find an open tab by exact URL or RegExp. */
   async find(query: string | RegExp): Promise<Tab> {
     const q = typeof query === "string" ? query : { regex: query.source, flags: query.flags };
-    return new Tab(await hostCall((h) => h.tabs.find(q)));
+    return new Tab(await hostCall((h) => h.tabs.find(q), { capability: "tabs", grant: "browser" }));
   },
 
   /** All open http(s) browser tabs. */
   async all(): Promise<Tab[]> {
-    const descriptors: TabDescriptor[] = await hostCall((h) => h.tabs.all());
+    const descriptors: TabDescriptor[] = await hostCall((h) => h.tabs.all(), { capability: "tabs", grant: "browser" });
     return descriptors.map((d) => new Tab(d));
   },
 
@@ -166,7 +166,7 @@ export const tabs = {
    * `await using tab = await tabs.open(url, { background: true })` auto-closes it.
    */
   async open(url: string, options: { background?: boolean } = {}): Promise<Tab> {
-    return new Tab(await hostCall((h) => h.tabs.open(url, options)));
+    return new Tab(await hostCall((h) => h.tabs.open(url, options), { capability: "tabs", grant: "browser" }));
   },
 
   /** For url-triggered runs: the tab whose navigation triggered this script. */

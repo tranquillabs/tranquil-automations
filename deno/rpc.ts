@@ -35,8 +35,31 @@ export function host(): Promise<HostStub> {
  * than the script. Re-throwing a fresh Error here makes V8 capture the script's own async stack
  * (the `tabs.active()` / `ui.open()` call site) — the "real file:line" the runner promises.
  */
-export async function hostCall<T>(fn: (host: HostStub) => Promise<T> | T): Promise<T> {
+/**
+ * Capability grants this run holds, from the runner (ADR-0025). Read from env rather than probed
+ * on the host stub: capnweb proxies property access, so an ungranted capability is NOT observably
+ * undefined here — the call goes out and comes back as the host's own "Cannot read properties of
+ * undefined", which names nothing useful.
+ */
+function grants(): string[] {
+  try {
+    return (Deno.env.get("TRANQUIL_GRANTS") ?? "").split(",").filter(Boolean);
+  } catch {
+    return []; // ungranted env access — treat as no capability grants
+  }
+}
+
+export async function hostCall<T>(
+  fn: (host: HostStub) => Promise<T> | T,
+  requires?: { capability: string; grant: string },
+): Promise<T> {
   const h = await host();
+  if (requires && !grants().includes(requires.grant)) {
+    throw new Error(
+      `This automation needs "// @permissions ${requires.grant}" to use ` +
+        `${requires.capability}. Add it to the leading comment block and run again.`,
+    );
+  }
   try {
     return await fn(h);
   } catch (e) {

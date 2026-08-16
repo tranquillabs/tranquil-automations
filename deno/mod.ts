@@ -63,17 +63,17 @@ export const ui = {
 /** The app clipboard. */
 export const clipboard = {
   async read(): Promise<string> {
-    return await hostCall((h) => h.clipboard.read());
+    return await hostCall((h) => h.clipboard.read(), { capability: "clipboard", grant: "clipboard" });
   },
   async write(text: string): Promise<void> {
-    await hostCall((h) => h.clipboard.write(text));
+    await hostCall((h) => h.clipboard.write(text), { capability: "clipboard", grant: "clipboard" });
   },
 };
 
 /** The host workspace. */
 export const workspace = {
   async projectDir(): Promise<string> {
-    return await hostCall((h) => h.workspace.projectDir());
+    return await hostCall((h) => h.workspace.projectDir(), { capability: "workspace", grant: "browser" });
   },
 };
 

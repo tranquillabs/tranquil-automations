@@ -104,47 +104,17 @@
       align-items: center;
       gap: 6px;
       padding: 4px 10px;
-      border-bottom: 1px solid @base-border-color;
+      // A tone change rather than a rule. This sat directly under the tab bar's own bottom
+      // border, so two horizontal lines a few pixels apart competed to say "the pane starts
+      // here" — and the pane controls above them read as belonging to neither. The heading
+      // background is the standard token for exactly this (a step lighter than the panel's
+      // @tool-panel-background-color), so the title band separates itself without a second line.
+      background: @panel-heading-background-color;
 
       .run-title {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-      }
-
-      // Right-aligned action buttons (Copy, Cancel).
-      .run-actions {
-        flex: none;
-        margin-left: auto;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .run-copy.copied {
-        color: @text-color-success;
-      }
-
-      // Cancelling takes a moment — CANCEL frame, then SIGTERM, then SIGKILL — so the button says
-      // so instead of sitting inert. Same green as Copy's confirmation, plus a spinner, because
-      // unlike Copy this is work in progress rather than a result.
-      .run-cancel.cancelling {
-        color: @text-color-success;
-        pointer-events: none; // a second press cannot help; the escalation is already running
-
-        &::after {
-          content: "";
-          display: inline-block;
-          width: 0.7em;
-          height: 0.7em;
-          margin-left: 0.45em;
-          vertical-align: -0.05em;
-          box-sizing: border-box;
-          border: 1.5px solid fade(@text-color-success, 30%);
-          border-top-color: @text-color-success;
-          border-radius: 50%;
-          animation: tq-cancel-spin 0.7s linear infinite;
-        }
       }
     }
 
@@ -172,6 +142,77 @@
 body.tranquil-runs-resizing {
   cursor: col-resize;
   user-select: none;
+}
+
+// Two traps here, both of which silently swallow the colour while the animation keeps running:
+//
+//  1. Depth. The base rule `.tab-bar .tranquil-pane-controls .tranquil-pane-controls-item`
+//     is (0,3,0) and sets `color: inherit`; a shorter `.tranquil-pane-controls-item.runs-*`
+//     at (0,2,0) loses outright.
+//  2. The glyph does NOT inherit. The business themes set `* { color: @text-primary }`
+//     (base.less), and a declaration matching an element directly always beats an
+//     inherited value regardless of specificity — so the codicon <span> stays theme-text
+//     even when its button computes green. The icon is a ::before on that span, so the
+//     span itself has to be coloured or nothing on screen changes.
+// Armed: there is a run in flight that this button would stop. A slow pulse rather than a static
+// tint, so a run being cancellable is noticeable without another thing shouting for attention —
+// and it stops the moment the run ends, which is its own useful signal that the run finished.
+// The opacity floor matches the strip's resting 0.8 so the button never dims below its neighbours.
+.tab-bar .tranquil-pane-controls .tranquil-pane-controls-item.runs-can-cancel {
+  color: @text-color-success;
+
+  // See trap 2 above — without this the glyph keeps the theme's `*` colour.
+  .codicon {
+    color: inherit;
+  }
+
+  animation: tq-cancel-ready 1.8s ease-in-out infinite;
+}
+
+@keyframes tq-cancel-ready {
+  0%,
+  100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+// Honour a reduced-motion preference: keep the colour cue, drop the movement.
+@media (prefers-reduced-motion: reduce) {
+  .tab-bar .tranquil-pane-controls .tranquil-pane-controls-item.runs-can-cancel {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+// Cancel takes a moment — CANCEL frame, then SIGTERM, then SIGKILL — so the control says so
+// instead of sitting inert. The button lives in the pane's tab-bar strip (runs-panel-controls.js)
+// and gets this class from the control's `className` function while the escalation runs.
+.tab-bar .tranquil-pane-controls .tranquil-pane-controls-item.runs-cancelling {
+  color: @text-color-success;
+
+  // See trap 2 above — without this the glyph keeps the theme's `*` colour.
+  .codicon {
+    color: inherit;
+  }
+
+  pointer-events: none; // a second press cannot help; the escalation is already running
+
+  &::after {
+    content: "";
+    display: inline-block;
+    width: 0.7em;
+    height: 0.7em;
+    margin-left: 0.35em;
+    vertical-align: -0.05em;
+    box-sizing: border-box;
+    border: 1.5px solid fade(@text-color-success, 30%);
+    border-top-color: @text-color-success;
+    border-radius: 50%;
+    animation: tq-cancel-spin 0.7s linear infinite;
+  }
 }
 
 @keyframes tq-cancel-spin {

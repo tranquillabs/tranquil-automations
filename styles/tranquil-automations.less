@@ -150,7 +150,7 @@
 }
 
 // Custom right-aligned tab-bar controls injected by lib/pane-controls.js into
-// center + right-dock panes. Pinned right via margin-left:auto + a high flex
+// center and dock panes (including the bottom dock's Automation Runs panel). Pinned right via margin-left:auto + a high flex
 // `order` so real tabs never displace it. Items registered with an action get
 // the `-item-action` modifier; unregistered panes fall back to placeholder
 // mimics with only the base `-item` class.
@@ -164,6 +164,7 @@
   align-self: center;
   flex-shrink: 0;
   -webkit-app-region: no-drag;
+
 
   // Inherit the tab-bar's text color (set by the active theme) rather than
   // ui-variables — the business themes don't export ui-variables, so those
@@ -190,6 +191,12 @@
       opacity: 1;
       background: rgba(127, 127, 127, 0.18);
     }
+
+    // Do NOT override the codicon font-size. Codicon is a pixel-designed icon font whose upstream
+    // rule is `font: normal normal normal 16px/1 codicon`; 16px is the grid its strokes are drawn
+    // on. An earlier 14px override here (a wrong guess at a vertical-alignment complaint that
+    // turned out to be a missing pane edge) put every glyph on fractional pixels and made the
+    // whole row look pixelated, as well as smaller than its neighbours.
   }
 
   // Wired (actionable) items read slightly stronger and show a click affordance.

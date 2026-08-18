@@ -1,7 +1,7 @@
 {
   "name": "tranquil-automations",
   "main": "./lib/tranquil-automations",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Write and run sandboxed TypeScript automations against any web app",
   "keywords": [],
   "repository": "https://github.com/tranquillabs/tranquil-automations",

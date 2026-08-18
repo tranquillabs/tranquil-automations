@@ -143,7 +143,10 @@ export class Tab implements AsyncDisposable {
 }
 
 export const tabs = {
-  /** The tab the user is looking at (or most recently was). */
+  /**
+   * The tab the user is looking at (or most recently was). Opens a tab on the browser's start
+   * page when none is open, so a script does not have to guard for it.
+   */
   async active(): Promise<Tab> {
     return new Tab(await hostCall((h) => h.tabs.active(), { capability: "tabs", grant: "browser" }));
   },

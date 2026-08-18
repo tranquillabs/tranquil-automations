@@ -1,6 +1,9 @@
 '.platform-darwin atom-workspace':
   'cmd-shift-r': 'tranquil-automations:run-automation'
+  # Runs panel = this app's Output panel, so it takes VS Code's Output binding.
+  'cmd-shift-u': 'tranquil-automations:toggle-runs-panel'
   'alt-cmd-w': 'tranquil-automations:close-all-center-tabs'
 
 '.platform-win32 atom-workspace, .platform-linux atom-workspace':
   'ctrl-alt-w': 'tranquil-automations:close-all-center-tabs'
+  'ctrl-shift-u': 'tranquil-automations:toggle-runs-panel'

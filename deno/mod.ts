@@ -42,21 +42,25 @@ export const ui = {
   async open(path: string, options: { split?: "up" | "down" | "left" | "right" } = {}) {
     await hostCall((h) => h.ui.open(resolveInScriptDir(path), options));
   },
+  /**
+   * Tell the user something: a popup AND a line in the run output.
+   *
+   * It always logs as well as popping, because a toast is gone in a few seconds and a run you
+   * come back to should still say what happened — the same reason a refused run is recorded in
+   * the Runs panel and not just toasted. Use plain `console.log` for anything that belongs in
+   * the output but does not deserve to interrupt.
+   *
+   * (This absorbed the old `ui.status()`, which was exactly this function's body: two channels
+   * for one message was a distinction without a difference.)
+   */
   async notify(
-    message: string,
-    options: { level?: "info" | "success" | "warning" | "error" } = {},
-  ) {
-    await hostCall((h) => h.ui.notify(message, options.level ?? "info"));
-  },
-  /** Terminal-style status line: log to the run output AND surface a popup. */
-  async status(
     message: string,
     options: { level?: "info" | "success" | "warning" | "error" } = {},
   ) {
     const level = options.level ?? "info";
     if (level === "error" || level === "warning") console.error(message);
     else console.log(message);
-    await ui.notify(message, { level });
+    await hostCall((h) => h.ui.notify(message, level));
   },
 };
 

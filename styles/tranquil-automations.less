@@ -165,6 +165,18 @@
   flex-shrink: 0;
   -webkit-app-region: no-drag;
 
+  // The tab row scrolls once there are more tabs than fit (`overflow-x: auto`, set by
+  // the theme). `margin-left: auto` only pins us right while there IS free space —
+  // once the tabs overflow it collapses to 0 and the cluster sits after the last tab,
+  // i.e. scrolled out of sight exactly when a crowded pane needs its controls most.
+  // Sticky keeps it parked on the right edge of the visible row with the tabs sliding
+  // underneath; `background-color: inherit` picks up whatever the active theme painted
+  // on `.tab-bar` so they slide under it rather than through it.
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  background-color: inherit;
+
 
   // Inherit the tab-bar's text color (set by the active theme) rather than
   // ui-variables — the business themes don't export ui-variables, so those

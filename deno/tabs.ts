@@ -124,6 +124,18 @@ export class Tab implements AsyncDisposable {
     return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   }
 
+  /**
+   * Hide or show this tab's address bar — the strip with the URL field and the nav buttons, not
+   * the tab itself. Called with no argument it flips; returns the new state (true = hidden).
+   * The state is kept on the item, so it survives a window reload.
+   */
+  async toggleURLBar(hidden?: boolean): Promise<boolean> {
+    return await hostCall(
+      (h) => h.tabs.setURLBarHidden(this.#descriptor.tabId, hidden ?? null),
+      { capability: "tabs", grant: "browser" },
+    );
+  }
+
   /** Close the tab (host-side) and drop the CDP socket. */
   async close(): Promise<void> {
     if (this.#conn) {
@@ -170,9 +182,10 @@ export const tabs = {
    *
    * `location` puts the tab somewhere other than the center — `"right"` or `"bottom"` opens it
    * in that dock and reveals the dock. `activate: false` opens without taking focus, which is
-   * what makes a side panel appear beside the work rather than in front of it:
+   * what makes a side panel appear beside the work rather than in front of it. `hideURLBar`
+   * drops the address bar, for a tab presented as a panel rather than as a browser:
    *
-   *     await tabs.open(url, { location: "right", activate: false });
+   *     await tabs.open(url, { location: "right", activate: false, hideURLBar: true });
    */
   async open(
     url: string,
@@ -180,6 +193,7 @@ export const tabs = {
       background?: boolean;
       location?: "center" | "right" | "bottom";
       activate?: boolean;
+      hideURLBar?: boolean;
     } = {},
   ): Promise<Tab> {
     return new Tab(await hostCall((h) => h.tabs.open(url, options), { capability: "tabs", grant: "browser" }));

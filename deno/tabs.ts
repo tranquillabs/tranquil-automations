@@ -167,8 +167,21 @@ export const tabs = {
    * Open a tab. `background: true` opens an off-screen tab (capped at ~4 concurrent,
    * FIFO beyond, same session partition as this window). Handles are AsyncDisposable:
    * `await using tab = await tabs.open(url, { background: true })` auto-closes it.
+   *
+   * `location` puts the tab somewhere other than the center — `"right"` or `"bottom"` opens it
+   * in that dock and reveals the dock. `activate: false` opens without taking focus, which is
+   * what makes a side panel appear beside the work rather than in front of it:
+   *
+   *     await tabs.open(url, { location: "right", activate: false });
    */
-  async open(url: string, options: { background?: boolean } = {}): Promise<Tab> {
+  async open(
+    url: string,
+    options: {
+      background?: boolean;
+      location?: "center" | "right" | "bottom";
+      activate?: boolean;
+    } = {},
+  ): Promise<Tab> {
     return new Tab(await hostCall((h) => h.tabs.open(url, options), { capability: "tabs", grant: "browser" }));
   },
 

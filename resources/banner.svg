@@ -14,7 +14,7 @@
 
   <!-- transcript -->
   <g font-size="17">
-    <text x="40" y="106" clip-path="url(#type1)"><tspan fill="#78A4FF">$</tspan><tspan fill="#ece8df" dx="7">tranquil run onboarding.js</tspan></text>
+    <text x="40" y="106" clip-path="url(#type1)"><tspan fill="#78A4FF">$</tspan><tspan fill="#ece8df" dx="7">tranquil run onboarding.ts</tspan></text>
     <text x="40" y="144" opacity="0"><tspan fill="#78A4FF">→</tspan><tspan fill="#b4afa6" dx="7">new signup · Acme Corp</tspan><animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2s" fill="freeze"/></text>
     <text x="40" y="182" opacity="0"><tspan fill="#78A4FF">✓</tspan><tspan fill="#ece8df" dx="7">invoice sent · CRM updated · #sales pinged</tspan><animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="2.7s" fill="freeze"/></text>
     <text x="40" y="220" opacity="0"><tspan fill="#78A4FF">✓</tspan><tspan fill="#b4afa6" dx="7">done in 1.2s — 0 manual steps</tspan><animate attributeName="opacity" from="0" to="1" dur="0.5s" begin="3.4s" fill="freeze"/></text>

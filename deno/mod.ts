@@ -5,15 +5,28 @@
 //   import { tabs, ui, files } from "tranquil/automation";
 //
 //   const tab = await tabs.active();
-//   const title = await tab.evaluate(() => document.title);
+//   const title = await tab.evaluate((page) => page.document.title);
 //   await ui.open(files.write("title.txt", title), { split: "down" });
 import { context } from "./context.ts";
 import { host, hostCall } from "./rpc.ts";
 
 export { context } from "./context.ts";
 export type { Trigger } from "./context.ts";
-export { Tab, tabs } from "./tabs.ts";
+export { Frame, Tab, tabs } from "./tabs.ts";
 export type { TabDescriptor } from "./tabs.ts";
+export { FieldError } from "./forms/types.ts";
+export type {
+  Clickable,
+  CustomPartsMap,
+  ErrorCode,
+  Field,
+  FieldRef,
+  Filled,
+  Kind,
+  Target,
+  Value,
+} from "./forms/types.ts";
+export type { Page } from "./page.ts";
 
 // Connect the bridge eagerly (fire-and-forget): this wires protocol-level cancel for every
 // script that imports the runtime, even ones that never call a host capability. Failures
@@ -62,6 +75,18 @@ export const ui = {
     else console.log(message);
     await hostCall((h) => h.ui.notify(message, level));
   },
+  /**
+   * Ask the person running the script, before something that cannot be undone (submitting a
+   * form, sending a message). Resolves true only if they choose Allow. It is false when nobody
+   * answers within `timeout` (default 60 s) and at once when the run was not started by hand
+   * (a URL trigger), so an unattended run can never be waved through.
+   *
+   *     if (!(await ui.confirm("Submit the application to Acme?"))) return;
+   *     await tab.click({ role: "button", name: "Submit application" });
+   */
+  async confirm(message: string, options: { timeout?: number } = {}): Promise<boolean> {
+    return Boolean(await hostCall((h) => h.ui.confirm(String(message), options.timeout ?? 60_000)));
+  },
 };
 
 /** The app clipboard. */
@@ -77,22 +102,21 @@ export const clipboard = {
 /** The host workspace. */
 export const workspace = {
   async projectDir(): Promise<string> {
-    return await hostCall((h) => h.workspace.projectDir(), { capability: "workspace", grant: "browser" });
+    return await hostCall((h) => h.workspace.projectDir(), { capability: "workspace", grant: "tabs" });
   },
 };
 
 /**
- * Per-script persistent state, namespaced under the app's config
- * (tranquil-automations.scriptState.*). Scripts can no longer write arbitrary app config —
- * a deliberate tightening over the old runner.
+ * Per-script persistent state, kept under the app's config in a section of its own for each
+ * script (keyed by the script's path, as the host knows it). A script cannot read or write
+ * app config, or another script's state.
  */
 export const config = {
-  // deno-lint-ignore no-explicit-any
-  async get(key: string): Promise<any> {
-    return await hostCall((h) => h.config.get(key));
+  /** The value stored under `key`, or undefined. Name its type: `config.get<string[]>("seen")`. */
+  async get<T = unknown>(key: string): Promise<T | undefined> {
+    return await hostCall((h) => h.config.get(key)) as T | undefined;
   },
-  // deno-lint-ignore no-explicit-any
-  async set(key: string, value: any): Promise<void> {
+  async set(key: string, value: unknown): Promise<void> {
     await hostCall((h) => h.config.set(key, value));
   },
 };

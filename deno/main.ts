@@ -36,6 +36,7 @@ try {
   //
   // In `finally` rather than after the await, so a script that throws still reports completion —
   // otherwise a failing debug run would be the one that hangs.
+  // deno-lint-ignore no-debugger -- the debug session's "script done" signal (above)
   debugger;
 }
 Deno.exit(0);

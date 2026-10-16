@@ -1,15 +1,60 @@
 // The capability session with the host renderer: capnweb over the token-authenticated
 // WebSocket bridge. One lazy singleton session per run; process death revokes everything.
-import { RpcSession } from "capnweb";
+import { RpcSession } from "npm:capnweb@0.9.0";
 import { connectTransport } from "./transport.ts";
+import { type Capability, heldGrants } from "./grants.ts";
+import type { TabDescriptor } from "./tabs.ts";
+import type { ActionEntry } from "./log.ts";
 
-// deno-lint-ignore no-explicit-any
-type HostStub = any;
+/**
+ * The host capabilities a run can call: what tranquil-automations lib/runner-capabilities.js
+ * serves to the runner audience, as the stub exposes it (every call returns a promise). Keep this
+ * in step with that file; a capability the run was not granted is missing on the host side.
+ */
+export interface HostApi {
+  tabs: {
+    active(): Promise<TabDescriptor>;
+    find(query: string | { regex: string; flags: string }): Promise<TabDescriptor>;
+    all(): Promise<TabDescriptor[]>;
+    open(
+      url: string,
+      options: { background?: boolean; location?: "center" | "right" | "bottom"; activate?: boolean; hideURLBar?: boolean },
+    ): Promise<TabDescriptor>;
+    close(tabId: string): Promise<void>;
+    focus(tabId: string): Promise<boolean>;
+    /** A fresh descriptor for a tab whose CDP target was replaced (reload, pane move). */
+    restamp(tabId: string): Promise<TabDescriptor>;
+    /** null flips; resolves the new state (true = hidden). */
+    setURLBarHidden(tabId: string, hidden: boolean | null): Promise<boolean>;
+    /** PNG, base64. */
+    screenshot(tabId: string): Promise<string>;
+  };
+  ui: {
+    open(path: string, options: { split?: "up" | "down" | "left" | "right" }): Promise<void>;
+    notify(message: string, level: "info" | "success" | "warning" | "error"): Promise<void>;
+    confirm(message: string, timeoutMs: number): Promise<boolean>;
+  };
+  run: {
+    action(entry: ActionEntry): Promise<void>;
+    result(value: unknown): Promise<void>;
+  };
+  clipboard: {
+    read(): Promise<string>;
+    write(text: string): Promise<void>;
+  };
+  workspace: {
+    projectDir(): Promise<string>;
+  };
+  config: {
+    get(key: string): Promise<unknown>;
+    set(key: string, value: unknown): Promise<void>;
+  };
+}
 
-let hostPromise: Promise<HostStub> | null = null;
+let hostPromise: Promise<HostApi> | null = null;
 
 /** The host capability stub (tabs, ui, clipboard, workspace, config — runner audience). */
-export function host(): Promise<HostStub> {
+export function host(): Promise<HostApi> {
   if (!hostPromise) {
     hostPromise = (async () => {
       const url = Deno.env.get("TRANQUIL_RPC_URL");
@@ -21,12 +66,24 @@ export function host(): Promise<HostStub> {
         );
       }
       const transport = await connectTransport(url, token);
-      // deno-lint-ignore no-explicit-any
-      const session = new RpcSession(transport as any);
-      return session.getRemoteMain() as HostStub;
+      const session = new RpcSession(transport);
+      // The stub forwards each call to the host, which serves HostApi (see above).
+      return session.getRemoteMain() as unknown as HostApi;
     })();
   }
   return hostPromise;
+}
+
+/**
+ * Refuse an SDK call the run's header did not grant (ADR-0026: tabs / forms / page-js, with
+ * `browser` meaning all three). Checked before any work, so the error names the missing key.
+ */
+export function requireGrant(grant: Capability, what: string): void {
+  if (heldGrants().has(grant)) return;
+  throw new Error(
+    `This automation needs "// @permissions ${grant}" (or "browser") to use ${what}. ` +
+      "Add it to the leading comment block and run again.",
+  );
 }
 
 /**
@@ -35,31 +92,18 @@ export function host(): Promise<HostStub> {
  * than the script. Re-throwing a fresh Error here makes V8 capture the script's own async stack
  * (the `tabs.active()` / `ui.open()` call site) — the "real file:line" the runner promises.
  */
-/**
- * Capability grants this run holds, from the runner (ADR-0025). Read from env rather than probed
- * on the host stub: capnweb proxies property access, so an ungranted capability is NOT observably
- * undefined here — the call goes out and comes back as the host's own "Cannot read properties of
- * undefined", which names nothing useful.
- */
-function grants(): string[] {
-  try {
-    return (Deno.env.get("TRANQUIL_GRANTS") ?? "").split(",").filter(Boolean);
-  } catch {
-    return []; // ungranted env access — treat as no capability grants
-  }
-}
-
 export async function hostCall<T>(
-  fn: (host: HostStub) => Promise<T> | T,
-  requires?: { capability: string; grant: string },
+  fn: (host: HostApi) => Promise<T> | T,
+  requires?: { capability: string; grant: Capability },
 ): Promise<T> {
-  const h = await host();
-  if (requires && !grants().includes(requires.grant)) {
+  // The grant first: an ungranted call must name what is missing, not fail on the connection.
+  if (requires && !heldGrants().has(requires.grant)) {
     throw new Error(
       `This automation needs "// @permissions ${requires.grant}" to use ` +
         `${requires.capability}. Add it to the leading comment block and run again.`,
     );
   }
+  const h = await host();
   try {
     return await fn(h);
   } catch (e) {

@@ -49,5 +49,55 @@
         "1.0.0": "consumeFileIcons"
       }
     }
+  },
+  "configSchema": {
+    "showFolderCounts": {
+      "title": "Show Folder Counts in the Tree View",
+      "description": "Show a direct-child count badge on collapsed folders in the tree view.",
+      "type": "boolean",
+      "default": true
+    },
+    "showRowActions": {
+      "title": "Show Rename/Delete Buttons on Tree View Rows",
+      "description": "Show rename and delete buttons on hover over a tree view file or folder, so they don't require the right-click context menu.",
+      "type": "boolean",
+      "default": true
+    },
+    "showVerticalTabs": {
+      "title": "Show Vertical Tab List (Right Dock)",
+      "description": "Show a panel in the right dock listing the main view's open tabs; click one to activate it in the main view.",
+      "type": "boolean",
+      "default": false
+    },
+    "denoPath": {
+      "title": "Deno Path",
+      "description": "Absolute path to the `deno` binary used to run automations. Leave empty to find it on PATH.",
+      "type": "string",
+      "default": ""
+    },
+    "approvedScriptPermissions": {
+      "title": "Approved Script Permissions",
+      "description": "Extra permission grants approved per script path (managed by the consent prompt; edit to revoke).",
+      "type": "array",
+      "default": []
+    },
+    "autoInjectScripts": {
+      "title": "Auto-run Scripts on URLs",
+      "description": "Scripts to run when a browser tab finishes loading a matching URL: entries of `{ pattern, path }`, where `pattern` is a regular expression for the URL. Each script still needs its permissions approved.",
+      "type": "array",
+      "default": []
+    },
+    "registeredAutomations": {
+      "title": "Registered Automations",
+      "description": "Scripts registered as automation commands (Automation: …) by SDK: Register Current File, each with its command name and file path.",
+      "type": "array",
+      "default": []
+    },
+    "scriptState": {
+      "title": "Automation State",
+      "description": "What each automation saved with config.set, kept separately per script (managed by the scripts).",
+      "type": "object",
+      "default": {}
+    }
   }
 }

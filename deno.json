@@ -1,0 +1,34 @@
+{
+  "//": "Dev config for the SDK's own checks and tests. Scripts never use this file: the runner always passes the seeded ~/.tranquil/automations/deno.json.",
+  "//imports": "For this repo's tests only: they reach the SDK and lib as tranquil-automations/..., not by counting ../ from their own folder. The SDK itself never uses this map (user scripts import its files directly).",
+  "imports": {
+    "tranquil-automations/": "./"
+  },
+  "compilerOptions": {
+    "strict": true
+  },
+  "tasks": {
+    "test": "deno test --allow-read=.,$TMPDIR --allow-write=$TMPDIR --allow-run=deno --allow-env=ATOM_HOME,HOME,TRANQUIL_CDP_PORT,TRANQUIL_CHECK_PARTS,TRANQUIL_ENTRY,TRANQUIL_GRANTS,TRANQUIL_RPC_TOKEN,TRANQUIL_RPC_URL,TRANQUIL_RUN_ID,TRANQUIL_SCRIPT_DIR,TRANQUIL_SITES,TRANQUIL_TRIGGER test/",
+    "check": "deno check deno/mod.ts deno/testing.ts"
+  },
+  "fmt": {
+    "include": [
+      "deno/",
+      "test/"
+    ],
+    "lineWidth": 110
+  },
+  "lint": {
+    "include": [
+      "deno/",
+      "test/"
+    ],
+    "rules": {
+      "exclude": [
+        "no-import-prefix"
+      ]
+    }
+  },
+  "//lint": "no-import-prefix is off on purpose: the SDK ships as loose files imported by user scripts, so its own dependencies must be fully qualified (jsr:, https:) rather than import-map names every script would have to repeat (ADR-0026).",
+  "nodeModulesDir": "none"
+}

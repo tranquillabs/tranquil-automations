@@ -1,0 +1,67 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@std/assert@1": "1.0.19",
+    "jsr:@std/internal@^1.0.12": "1.0.14",
+    "jsr:@std/internal@^1.0.14": "1.0.14",
+    "jsr:@std/path@1": "1.1.6",
+    "jsr:@std/text@1": "1.0.19",
+    "npm:capnweb@0.9.0": "0.9.0"
+  },
+  "jsr": {
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal@^1.0.12"
+      ]
+    },
+    "@std/internal@1.0.14": {
+      "integrity": "291516b3d4c35024d6ffbc0a9df5bf4c64116e05b50012cf846710152d2ffdf7"
+    },
+    "@std/path@1.1.6": {
+      "integrity": "c68485c2a4dfbb5ae3cc74fae4e8c4e5d874cf8a8ed12927917235c758b46cbe",
+      "dependencies": [
+        "jsr:@std/internal@^1.0.14"
+      ]
+    },
+    "@std/text@1.0.19": {
+      "integrity": "003a0e032d360e8c3a4e0410fb792c77a66bd6553fee9d60c6ec1bce30d29223"
+    }
+  },
+  "npm": {
+    "capnweb@0.9.0": {
+      "integrity": "sha512-kZ0vg55E+gkuKHNHTXrizb5hMbD0IVCJ0lY/WHmcin7YiwvgG77RT3OTRW/zdS9rtBcjT8xGAF1TG35whR2cyA=="
+    }
+  },
+  "remote": {
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/build/deno-wasm/deno-wasm-dynamic.js": "fd05e83a855aa68b09396dc47a7638ef526c39917971715ac37e0fc3227db886",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/build/deno-wasm/deno-wasm.js": "ccde5219e42040b8f7a8b653acc6c8cca197c29f98d6b75f74c48111e34bcbea",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/build/deno-wasm/deno-wasm_bg-wasm.js": "52c57905a74047d1574f0b96e301ef1d5974cd962705615555b5e46b5ac420e4",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/build/deno-wasm/deno-wasm_bg.wasm": "b5fbd7ede316f7c13e4a7b927a053a35b475a9acce7c7cae864e91d9b8dd24c7",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/build/deno-wasm/env.js": "17da784c11b192c591dbf7df21ec6f65f63f45ca9a713e4ca100f3c886b4023f",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/build/deno-wasm/wbg.js": "b5b6de12bc010fa23438c8a8276067b9044a405da516d0bbe4ae61b7c6d61a22",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/deno-dom-wasm.ts": "34f0654b452568fbd95b8d1b2a493de19710ac9ceeb6b82f541d09c29613572d",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/api.ts": "6a507fcc740f55c58f06b9ea4d5ab37f3bcaf7cbb70b28b14db0429e0fa503e4",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/constructor-lock.ts": "0e7b297e8b9cf921a3b0d3a692ec5fb462c5afc47ec554292e20090b9e16b40a",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/deserialize.ts": "e8515e8291cce15af720f1f5d142c84df2e3f5a2eed61e337be20f29b0cf42db",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/document-fragment.ts": "0b915d094830d43b330dc2fb8012b990f2c815773c6cdcd4a9fdff99fe47412e",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/document.ts": "a8e6912741de950fca2af9f60ae9f95dea74fea1a2fe51d4eb25c5e05faf69cf",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/dom-parser.ts": "ab5e8382700bc3936ac67e8d11b7bb9c6999a994ac8b070b7cae94e2d2ecee5a",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/element.ts": "ac9da66bdf3f7d0b749b4bfca72ca45b40f5c34dad00ad49ff9e7977f11cce08",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/elements/html-form-elements.ts": "b91897fb22b1d0743b02705fd950bc58d9baf454144e7f93714db3a233d123fc",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/elements/html-template-element.ts": "1707dfb4cbb145f3bcb94426d7cdedbaa336620d0afed30e99f50fe87ba24a98",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/html-collection.ts": "dcf328e883877f7748d3e20fb6319e739f297a6e24f4b00ec5b1a2f390cfa3c6",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/node-list.ts": "be9793475d82539da8b97a17b6b5538cc723538c10cc5820a23e5e4b2248845d",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/node.ts": "e6eefca8a23baa97241466e68ab3b100b9f59d4db028e961b255a457ac7e0f3d",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/selectors/custom-api.ts": "852696bd58e534bc41bd3be9e2250b60b67cd95fd28ed16b1deff1d548531a71",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/selectors/nwsapi-types.ts": "c43b36c36acc5d32caabaa54fda8c9d239b2b0fcbce9a28efb93c84aa1021698",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/selectors/nwsapi.js": "985d7d8fc1eabbb88946b47a1c44c1b2d4aa79ff23c21424219f1528fa27a2ff",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/selectors/selectors.ts": "83eab57be2290fb48e3130533448c93c6c61239f2a2f3b85f1917f80ca0fdc75",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/selectors/sizzle-types.ts": "78149e2502409989ce861ed636b813b059e16bc267bb543e7c2b26ef43e4798b",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/selectors/sizzle.js": "c3aed60c1045a106d8e546ac2f85cc82e65f62d9af2f8f515210b9212286682a",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/string-cache.ts": "8e935804f7bac244cc70cec90a28c9f6d30fea14c61c2c4ea48fca274376d786",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/utils-types.ts": "96db30e3e4a75b194201bb9fa30988215da7f91b380fca6a5143e51ece2a8436",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/dom/utils.ts": "bc429635e9204051ba1ecc1b212031b5ee7c6bcd95120c91bef696804aa67e74",
+    "https://raw.githubusercontent.com/tranquillabs/deno-dom/v0.1.56-tq.1/src/parser.ts": "e06b2300d693e6ae7564e53dfa5c9a9e97fdb8c044c39c52c8b93b5d60860be3"
+  }
+}

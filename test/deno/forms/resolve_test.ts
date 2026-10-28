@@ -100,6 +100,18 @@ Deno.test("groups: shared-name radios, Yes/No buttons, checkbox groups, single c
   ]);
 });
 
+Deno.test("a label wrapping other labels is named without looping (Lever's EEO radios)", () => {
+  const html = `<div class="application-question"><label>
+    <div class="application-label multiple-choice">Race</div>
+    <div class="application-field"><ul data-qa="multiple-choice">
+      <li><label><input type=radio name="eeo[race]" value="Hispanic or Latino"><span>Hispanic or Latino</span></label></li>
+      <li><label><input type=radio name="eeo[race]" value="Decline to self-identify"><span>Decline to self-identify</span></label></li>
+    </ul></div></label></div>`;
+  assertEquals(fieldsOf(html).map((f) => [f.label, f.kind, f.options]), [
+    ["Race", "radio", ["Hispanic or Latino", "Decline to self-identify"]],
+  ]);
+});
+
 Deno.test("question text never leaks across fields", () => {
   const html = `<form>
     <div class="field"><label for="first">First name *</label><input id="first"></div>

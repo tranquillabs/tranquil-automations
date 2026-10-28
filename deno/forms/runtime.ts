@@ -343,7 +343,8 @@ export function createFormsRuntime(page: Page) {
     return quoted ? quoted[1] : "";
   }
 
-  type NameCtx = { root: El; referenced: boolean; includeHidden: boolean; inContent: boolean; fallbacks: boolean };
+  /** `naming`: the nodes whose names are being computed further up, shared by every copy. */
+  type NameCtx = { root: El; referenced: boolean; includeHidden: boolean; inContent: boolean; fallbacks: boolean; naming: Set<El> };
 
   const EMBEDDED = new Set(["textbox", "searchbox", "combobox", "listbox", "slider", "spinbutton", "progressbar", "scrollbar"]);
 
@@ -366,9 +367,12 @@ export function createFormsRuntime(page: Page) {
   /** What HTML itself names an element with (step 2D): labels, alt, legend, caption, value. */
   function nativeName(el: El, ctx: NameCtx): string {
     const t = tag(el);
-    const labels = maybe(el).labels;
-    if (labels && labels.length) {
-      const text = Array.from(labels).map((label) =>
+    // Nested labels are invalid HTML, but some forms wrap each radio's label in the question's
+    // label, which HTML then also gives the first radio: only the innermost of nested labels counts.
+    const all = Array.from(maybe(el).labels ?? []) as El[];
+    const labels = all.filter((label) => !all.some((other) => other !== label && label.contains(other)));
+    if (labels.length) {
+      const text = labels.map((label) =>
         contentName(label, { ...ctx, inContent: true, referenced: true, includeHidden: ctx.includeHidden || hiddenForName(label) })
       ).join(" ");
       if (collapse(text)) return text;
@@ -412,7 +416,23 @@ export function createFormsRuntime(page: Page) {
     return out + (ownTextHidden ? "" : pseudoText(el, "::after"));
   }
 
+  /**
+   * A node already being named further up contributes nothing. Otherwise a label nested in
+   * another label (a question's label wrapping its radios' labels) leads from a radio to its
+   * label and back to the radio forever. The root is exempt so aria-labelledby can include it.
+   */
   function compute(el: El, ctx: NameCtx): string {
+    if (el === ctx.root) return computeNode(el, ctx);
+    if (ctx.naming.has(el)) return "";
+    ctx.naming.add(el);
+    try {
+      return computeNode(el, ctx);
+    } finally {
+      ctx.naming.delete(el);
+    }
+  }
+
+  function computeNode(el: El, ctx: NameCtx): string {
     const isRoot = el === ctx.root && !ctx.inContent;
     if (!isRoot && !ctx.includeHidden && hiddenKind(el) === "subtree") return ""; // 2A (visibility: see contentName)
     const labelledBy = attr(el, "aria-labelledby");
@@ -451,7 +471,7 @@ export function createFormsRuntime(page: Page) {
    * labels prefer the question text above a field to those.
    */
   function nameOf(el: El, opts: { fallbacks?: boolean } = {}): string {
-    return collapse(compute(el, { root: el, referenced: false, includeHidden: false, inContent: false, fallbacks: opts.fallbacks ?? true }));
+    return collapse(compute(el, { root: el, referenced: false, includeHidden: false, inContent: false, fallbacks: opts.fallbacks ?? true, naming: new Set() }));
   }
 
   function ownLabel(el: El): string {

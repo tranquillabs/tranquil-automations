@@ -1,7 +1,7 @@
 // Deno-side orchestration of the form API (ADR-0026): resolve → wait until actionable →
 // trusted input → read back → commit → report. Implementation, not contract.
 import { rankSuggestions } from "./rank.ts";
-import { SUBMIT_NAME } from "../guard.ts";
+import { SUBMIT_NAME, submitNeeds } from "../guard.ts";
 import { isAbsolute, resolve } from "jsr:@std/path@^1";
 import { context } from "../context.ts";
 import { describeTarget, FieldError, toWire } from "./types.ts";
@@ -511,7 +511,12 @@ export async function clear(d: Driver, target: Target, opts: Opts = {}): Promise
   }
 }
 
-const NOT_SUBMIT = "Add `submit` to the script's @permissions (and ask first with ui.confirm) only if the task is to submit.";
+/** The next step after a refused submission: the grant when the header lacks it, else the person's yes. */
+function notSubmit(): string {
+  return submitNeeds() === "the submit permission"
+    ? "Add `submit` to the script's @permissions (and ask first with ui.confirm) only if the task is to submit."
+    : "The person hasn't said yes: submit only after ui.confirm(…) returns true.";
+}
 
 /**
  * Run a write with the submit guard armed unless the script may submit: a form submission it
@@ -527,7 +532,7 @@ async function guarded(d: Driver, maySubmit: boolean, what: string, act: () => P
     blocked = Boolean((await d.runtime("disarmSubmitGuard").catch(() => ({ blocked: false }))).blocked);
   }
   if (blocked) {
-    throw new FieldError("not_permitted", `${what} would have submitted the form; the submission was stopped. ${NOT_SUBMIT}`);
+    throw new FieldError("not_permitted", `${what} would have submitted the form; the submission was stopped. ${notSubmit()}`);
   }
 }
 
@@ -535,7 +540,7 @@ export async function click(d: Driver, target: Target, opts: { timeout?: number;
   const timeout = opts.timeout ?? DEFAULT_TIMEOUT_MS;
   const field = await resolveField(d, target, "click", timeout);
   if (!opts.maySubmit && SUBMIT_NAME.test(field.label)) {
-    throw new FieldError("not_permitted", `click ${describeTarget(target)}: "${field.label}" looks like it sends the form. ${NOT_SUBMIT}`);
+    throw new FieldError("not_permitted", `click ${describeTarget(target)}: "${field.label}" looks like it sends the form. ${notSubmit()}`);
   }
   const p = await until(() => d.runtime("point", field.ref.ref), target, "click", timeout);
   await guarded(d, opts.maySubmit ?? false, `click ${describeTarget(target)}`, () => d.click(p.x, p.y));
@@ -589,7 +594,9 @@ export async function checkTarget(
   const field = await resolveField(d, target, verb, opts.timeout ?? DEFAULT_TIMEOUT_MS);
   const hidden = opts.sensitive || field.sensitive;
   const shown = verb === "fill" || verb === "upload" ? ` ← ${hidden ? "(sensitive value)" : JSON.stringify(value)}` : "";
-  const note = verb === "click" && !opts.maySubmit && SUBMIT_NAME.test(field.label) ? "  (refused: needs the submit permission)" : "";
+  const note = verb === "click" && !opts.maySubmit && SUBMIT_NAME.test(field.label)
+    ? `  (refused: needs ${submitNeeds() ?? "the submit permission"})`
+    : "";
   console.log(`[check] would ${verb} ${describeTarget(target)} ("${field.label}", ${field.kind})${shown}${note}`);
   if (field.kind === "select" && (verb === "fill" || verb === "clear")) {
     const holds = Array.isArray(field.value) ? field.value.length > 0 : !!field.value;

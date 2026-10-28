@@ -8,6 +8,7 @@
 //   const title = await tab.evaluate((page) => page.document.title);
 //   await ui.open(files.write("title.txt", title), { split: "down" });
 import { context } from "./context.ts";
+import { recordConfirm } from "./guard.ts";
 import { host, hostCall } from "./rpc.ts";
 
 export { context } from "./context.ts";
@@ -79,13 +80,16 @@ export const ui = {
    * Ask the person running the script, before something that cannot be undone (submitting a
    * form, sending a message). Resolves true only if they choose Allow. It is false when nobody
    * answers within `timeout` (default 60 s) and at once when the run was not started by hand
-   * (a URL trigger), so an unattended run can never be waved through.
+   * (a URL trigger), so an unattended run can never be waved through. A submission needs a yes:
+   * the SDK refuses one unless the run's most recent ui.confirm returned true.
    *
    *     if (!(await ui.confirm("Submit the application to Acme?"))) return;
    *     await tab.click({ role: "button", name: "Submit application" });
    */
   async confirm(message: string, options: { timeout?: number } = {}): Promise<boolean> {
-    return Boolean(await hostCall((h) => h.ui.confirm(String(message), options.timeout ?? 60_000)));
+    const answer = Boolean(await hostCall((h) => h.ui.confirm(String(message), options.timeout ?? 60_000)));
+    recordConfirm(answer);
+    return answer;
   },
 };
 

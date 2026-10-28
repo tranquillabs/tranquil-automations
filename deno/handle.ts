@@ -297,8 +297,9 @@ export abstract class PageHandle {
 
   /**
    * A trusted click on an element. Refused with `covered` if something else is on top. Without
-   * the `submit` grant, a click that would submit a form is stopped and refused with
-   * `not_permitted`, as is one on a button named like Submit, Send, Pay or Place order.
+   * the `submit` grant and a yes to the run's most recent ui.confirm, a click that would submit a
+   * form is stopped and refused with `not_permitted`, as is one on a button named like Submit,
+   * Send, Pay or Place order.
    */
   async click(target: Target, opts: { timeout?: number } = {}): Promise<void> {
     const maySubmit = canSubmit();
@@ -313,7 +314,8 @@ export abstract class PageHandle {
 
   /**
    * Press a key in the focused element: "Enter", "Escape", "Tab", "ArrowDown", … Without the
-   * `submit` grant, a key that submits a form (Enter in a field) is stopped and refused.
+   * `submit` grant and a yes to the run's most recent ui.confirm, a key that submits a form
+   * (Enter in a field) is stopped and refused.
    */
   async press(key: string): Promise<void> {
     const maySubmit = canSubmit();

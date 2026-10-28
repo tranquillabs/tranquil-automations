@@ -37,17 +37,18 @@ without a `@permissions` line is refused.
 
 | Grant | Allows |
 | --- | --- |
-| `none` | Nothing beyond the script's own folder |
+| `none` | Nothing: no files, network or browser |
 | `browser` | Drive tabs — open pages and run code in them, in your signed-in sessions |
 | `clipboard` | Read and write the system clipboard |
 | `net=host,…` | Network access to those hosts |
-| `read=path,…` / `write=path,…` | Files outside the script's folder |
+| `read=path,…` / `write=path,…` | Those files and folders, relative to the script's folder |
 | `env=NAME,…` | Environment variables |
 | `run=bin,…` | Run commands (effectively full user privilege) |
 | `import=host,…` | Module imports beyond `jsr.io` |
 
-A script's own folder is always readable and writable. Anything requesting more asks for
-approval the first time it runs, remembered until the declaration changes.
+A script gets no files by default, not even its own folder: it names each one in `read=` or
+`write=`. A header that grants anything asks for approval the first time it runs, remembered
+until the declaration changes.
 
 ## Install
 

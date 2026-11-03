@@ -139,7 +139,7 @@ ${fence}
 `);
   assertEquals(doc.blocks.map((b) => b.stepOk), [false, false, true, false, false]);
   assertEquals(doc.warnings.length, 4);
-  assertStringIncludes(doc.warnings.join("\n"), "needs an id");
+  assertStringIncludes(doc.warnings.join("\n"), "has no step id");
   assertStringIncludes(doc.warnings.join("\n"), "kebab-case");
   assertStringIncludes(doc.warnings.join("\n"), "already used");
   assertStringIncludes(doc.warnings.join("\n"), "exactly one path");

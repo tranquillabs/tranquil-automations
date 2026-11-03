@@ -8,20 +8,22 @@
     "strict": true
   },
   "tasks": {
-    "test": "deno test --allow-read=.,$TMPDIR --allow-write=$TMPDIR --allow-run=deno --allow-env=ATOM_HOME,HOME,TRANQUIL_CDP_PORT,TRANQUIL_CHECK_PARTS,TRANQUIL_ENTRY,TRANQUIL_GRANTS,TRANQUIL_RPC_TOKEN,TRANQUIL_RPC_URL,TRANQUIL_RUN_ID,TRANQUIL_SCRIPT_DIR,TRANQUIL_SITES,TRANQUIL_TRIGGER test/",
+    "test": "deno test --allow-read=.,$TMPDIR --allow-write=$TMPDIR --allow-run=deno,ln --allow-env=ATOM_HOME,HOME,TRANQUIL_CDP_PORT,TRANQUIL_CHECK_PARTS,TRANQUIL_ENTRY,TRANQUIL_GRANTS,TRANQUIL_RPC_TOKEN,TRANQUIL_RPC_URL,TRANQUIL_RUN_ID,TRANQUIL_SCRIPT_DIR,TRANQUIL_SITES,TRANQUIL_TRIGGER test/",
     "check": "deno check deno/mod.ts deno/testing.ts"
   },
   "fmt": {
     "include": [
       "deno/",
-      "test/"
+      "test/",
+      "types/"
     ],
     "lineWidth": 110
   },
   "lint": {
     "include": [
       "deno/",
-      "test/"
+      "test/",
+      "types/"
     ],
     "rules": {
       "exclude": [

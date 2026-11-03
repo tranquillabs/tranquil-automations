@@ -15,7 +15,8 @@
   },
   "deserializers": {
     "TranquilVerticalTabsView": "deserializeVerticalTabs",
-    "TranquilAutomationRunsView": "deserializeRunsPanel"
+    "TranquilAutomationRunsView": "deserializeRunsPanel",
+    "TranquilWorkbookView": "deserializeWorkbook"
   },
   "dependencies": {
     "tranquil-config": "link:../tranquil-config",

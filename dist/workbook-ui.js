@@ -1,4 +1,9 @@
 Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
+// common/attach.js
+function attachNodes(node, nodes) {
+	node.replaceChildren(...nodes);
+	return { update: (next) => node.replaceChildren(...next) };
+}
 // node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/shared/utils.js
 var is_array = Array.isArray;
 var index_of = Array.prototype.indexOf;
@@ -34,6 +39,32 @@ function deferred() {
 		reject
 	};
 }
+/**
+* When encountering a situation like `let [a, b, c] = $derived(blah())`,
+* we need to stash an intermediate value that `a`, `b`, and `c` derive
+* from, in case it's an iterable
+* @template T
+* @param {ArrayLike<T> | Iterable<T>} value
+* @param {number} [n]
+* @returns {Array<T>}
+*/
+function to_array(value, n) {
+	if (Array.isArray(value)) return value;
+	if (n === void 0 || !(Symbol.iterator in value)) return Array.from(value);
+	/** @type {T[]} */
+	const array = [];
+	for (const element of value) {
+		array.push(element);
+		if (array.length === n) break;
+	}
+	return array;
+}
+// node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/client/constants.js
+/**
+* An effect that does not destroy its child effects when it reruns.
+* Runs as part of render effects, i.e. not eagerly as part of tree traversal or effect flushing.
+*/
+var MANAGED_EFFECT = 1 << 24;
 var CLEAN = 1024;
 var DIRTY = 2048;
 var MAYBE_DIRTY = 4096;
@@ -63,6 +94,7 @@ var ATTRIBUTES_CACHE = Symbol("attributes");
 var CLASS_CACHE = Symbol("class");
 var STYLE_CACHE = Symbol("style");
 var TEXT_CACHE = Symbol("text");
+var FORM_RESET_HANDLER = Symbol("form reset");
 /** allow users to ignore aborted signal errors if `reason.name === 'StaleReactionError` */
 var STALE_REACTION = new class StaleReactionError extends Error {
 	name = "StaleReactionError";
@@ -73,6 +105,7 @@ var IS_XHTML = !!globalThis.document?.contentType && /* @__PURE__ */ globalThis.
 var HYDRATION_ERROR = {};
 var UNINITIALIZED = Symbol("uninitialized");
 var NAMESPACE_HTML = "http://www.w3.org/1999/xhtml";
+var NAMESPACE_SVG = "http://www.w3.org/2000/svg";
 /**
 * Reading a derived belonging to a now-destroyed effect may result in stale values
 */
@@ -85,6 +118,12 @@ function derived_inert() {
 */
 function hydration_mismatch(location) {
 	console.warn(`https://svelte.dev/e/hydration_mismatch`);
+}
+/**
+* The `value` property of a `<select multiple>` element should be an array, but it received a non-array value. The selection will be kept as is.
+*/
+function select_multiple_invalid_value() {
+	console.warn(`https://svelte.dev/e/select_multiple_invalid_value`);
 }
 /**
 * A `<svelte:boundary>` `reset` function only resets the boundary the first time it is called
@@ -390,6 +429,33 @@ function defer_effect(effect, dirty_reactions) {
 	if ((effect.f & 2048) !== 0) dirty_reactions.set(effect, DIRTY);
 	else if ((effect.f & 4096) !== 0 && dirty_reactions.get(effect) !== 2048) dirty_reactions.set(effect, MAYBE_DIRTY);
 	set_signal_status(effect, CLEAN);
+}
+// node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/client/dom/elements/misc.js
+/**
+* @param {HTMLElement} dom
+* @param {boolean} value
+* @returns {void}
+*/
+function autofocus(dom, value) {
+	if (value) {
+		const body = document.body;
+		dom.autofocus = true;
+		queue_micro_task(() => {
+			if (document.activeElement === body) dom.focus();
+		});
+	}
+}
+var listening_to_form_reset = false;
+function add_form_reset_listener() {
+	if (!listening_to_form_reset) {
+		listening_to_form_reset = true;
+		document.addEventListener("reset", (evt) => {
+			Promise.resolve().then(() => {
+				if (!evt.defaultPrevented) for (const e of evt.target.elements)
+ /** @type {any} */ e[FORM_RESET_HANDLER]?.();
+			});
+		}, { capture: true });
+	}
 }
 // node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/client/dom/elements/bindings/shared.js
 /**
@@ -1758,6 +1824,22 @@ function proxy(value) {
 		}
 	});
 }
+/**
+* @param {any} value
+*/
+function get_proxied_value(value) {
+	try {
+		if (value !== null && typeof value === "object" && STATE_SYMBOL in value) return value[STATE_SYMBOL];
+	} catch {}
+	return value;
+}
+/**
+* @param {any} a
+* @param {any} b
+*/
+function is(a, b) {
+	return Object.is(get_proxied_value(a), get_proxied_value(b));
+}
 // node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/client/dom/operations.js
 /** @import { Effect, TemplateNode } from '#client' */
 /** @type {Window} */
@@ -2156,6 +2238,13 @@ function template_effect(fn, sync = [], async = [], blockers = []) {
 */
 function block(fn, flags = 0) {
 	return create_effect(16 | flags, fn);
+}
+/**
+* @param {(() => void)} fn
+* @param {number} flags
+*/
+function managed(fn, flags = 0) {
+	return create_effect(MANAGED_EFFECT | flags, fn);
 }
 /**
 * @param {(() => void)} fn
@@ -2613,6 +2702,18 @@ function update_effect(effect) {
 	}
 }
 /**
+* Returns a promise that resolves once any pending state changes have been applied.
+* @returns {Promise<void>}
+*/
+async function tick() {
+	if (async_mode_flag) return new Promise((f) => {
+		requestAnimationFrame(() => f());
+		setTimeout(() => f());
+	});
+	await Promise.resolve();
+	flushSync();
+}
+/**
 * @template V
 * @param {Value<V>} signal
 * @returns {V}
@@ -2756,6 +2857,107 @@ function deep_read(value, visited = /* @__PURE__ */ new Set()) {
 		}
 	}
 }
+// node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/utils.js
+/**
+* @param {string} name
+*/
+function is_capture_event(name) {
+	return name.endsWith("capture") && name !== "gotpointercapture" && name !== "lostpointercapture";
+}
+/** List of Element events that will be delegated */
+var DELEGATED_EVENTS = [
+	"beforeinput",
+	"click",
+	"change",
+	"dblclick",
+	"contextmenu",
+	"focusin",
+	"focusout",
+	"input",
+	"keydown",
+	"keyup",
+	"mousedown",
+	"mousemove",
+	"mouseout",
+	"mouseover",
+	"mouseup",
+	"pointerdown",
+	"pointermove",
+	"pointerout",
+	"pointerover",
+	"pointerup",
+	"touchend",
+	"touchmove",
+	"touchstart"
+];
+/**
+* Returns `true` if `event_name` is a delegated event
+* @param {string} event_name
+*/
+function can_delegate_event(event_name) {
+	return DELEGATED_EVENTS.includes(event_name);
+}
+/**
+* Attributes that are boolean, i.e. they are present or not present.
+*/
+var DOM_BOOLEAN_ATTRIBUTES = [
+	"allowfullscreen",
+	"async",
+	"autofocus",
+	"autoplay",
+	"checked",
+	"controls",
+	"default",
+	"disabled",
+	"formnovalidate",
+	"indeterminate",
+	"inert",
+	"ismap",
+	"loop",
+	"multiple",
+	"muted",
+	"nomodule",
+	"novalidate",
+	"open",
+	"playsinline",
+	"readonly",
+	"required",
+	"reversed",
+	"seamless",
+	"selected",
+	"webkitdirectory",
+	"defer",
+	"disablepictureinpicture",
+	"disableremoteplayback"
+];
+/**
+* @type {Record<string, string>}
+* List of attribute names that should be aliased to their property names
+* because they behave differently between setting them as an attribute and
+* setting them as a property.
+*/
+var ATTRIBUTE_ALIASES = {
+	formnovalidate: "formNoValidate",
+	ismap: "isMap",
+	nomodule: "noModule",
+	playsinline: "playsInline",
+	readonly: "readOnly",
+	defaultvalue: "defaultValue",
+	defaultchecked: "defaultChecked",
+	srcobject: "srcObject",
+	novalidate: "noValidate",
+	allowfullscreen: "allowFullscreen",
+	disablepictureinpicture: "disablePictureInPicture",
+	disableremoteplayback: "disableRemotePlayback"
+};
+/**
+* @param {string} name
+*/
+function normalize_attribute(name) {
+	name = name.toLowerCase();
+	return ATTRIBUTE_ALIASES[name] ?? name;
+}
+[...DOM_BOOLEAN_ATTRIBUTES];
 /**
 * Subset of delegated events which should be passive by default.
 * These two are already passive via browser defaults on window, document and body.
@@ -2772,6 +2974,17 @@ var PASSIVE_EVENTS = ["touchstart", "touchmove"];
 */
 function is_passive_event(name) {
 	return PASSIVE_EVENTS.includes(name);
+}
+/** List of elements that require raw contents and should not have SSR comments put in them */
+var RAW_TEXT_ELEMENTS = [
+	"textarea",
+	"script",
+	"style",
+	"title"
+];
+/** @param {string} name */
+function is_raw_text_element(name) {
+	return RAW_TEXT_ELEMENTS.includes(name);
 }
 // node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/client/dom/elements/events.js
 /**
@@ -4210,6 +4423,66 @@ function link(state, prev, next) {
 	if (next === null) state.effect.last = prev;
 	else next.prev = prev;
 }
+// node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/client/dom/blocks/svelte-element.js
+/** @import { Effect, EffectNodes, TemplateNode } from '#client' */
+/**
+* @param {Comment | Element} node
+* @param {() => string} get_tag
+* @param {boolean} is_svg
+* @param {undefined | ((element: Element, anchor: Node | null) => void)} render_fn,
+* @param {undefined | (() => string)} get_namespace
+* @param {undefined | [number, number]} location
+* @returns {void}
+*/
+function element(node, get_tag, is_svg, render_fn, get_namespace, location) {
+	let was_hydrating = hydrating;
+	if (hydrating) hydrate_next();
+	/** @type {null | Element} */
+	var element = null;
+	if (hydrating && hydrate_node.nodeType === 1) {
+		element = hydrate_node;
+		hydrate_next();
+	}
+	var anchor = hydrating ? hydrate_node : node;
+	var branches = new BranchManager(anchor, false);
+	block(() => {
+		const next_tag = get_tag() || null;
+		var ns = get_namespace ? get_namespace() : is_svg || next_tag === "svg" ? NAMESPACE_SVG : void 0;
+		if (next_tag === null) {
+			branches.ensure(null, null);
+			return;
+		}
+		branches.ensure(next_tag, (anchor) => {
+			if (next_tag) {
+				var is_hydrating = hydrating;
+				element = hydrating ? element : create_element(next_tag, ns);
+				assign_nodes(element, element);
+				if (render_fn) {
+					var tmp_comment = null;
+					if (hydrating && is_raw_text_element(next_tag)) element.append(tmp_comment = document.createComment(""));
+					var child_anchor = hydrating ? /* @__PURE__ */ get_first_child(element) : element.appendChild(create_text());
+					if (hydrating) {
+						if (child_anchor === null) set_hydrating(false);
+						else set_hydrate_node(child_anchor);
+					}
+					render_fn(element, child_anchor);
+					tmp_comment?.remove();
+				}
+				/** @type {Effect & { nodes: EffectNodes }} */ active_effect.nodes.end = element;
+				if (!is_hydrating) anchor.before(element);
+			}
+			if (hydrating) set_hydrate_node(anchor);
+		});
+		return () => {
+			if (next_tag);
+		};
+	}, EFFECT_TRANSPARENT);
+	teardown(() => {});
+	if (was_hydrating) {
+		set_hydrating(true);
+		set_hydrate_node(anchor);
+	}
+}
 // node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/client/dom/elements/actions.js
 /** @import { ActionPayload } from '#client' */
 /**
@@ -4239,7 +4512,53 @@ function action(dom, action, get_value) {
 		if (payload?.destroy) return () => payload.destroy();
 	});
 }
+// node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/client/dom/elements/attachments.js
+/** @import { Effect } from '#client' */
+/**
+* @param {Element} node
+* @param {() => (node: Element) => void} get_fn
+*/
+function attach(node, get_fn) {
+	/** @type {false | undefined | ((node: Element) => void)} */
+	var fn = void 0;
+	/** @type {Effect | null} */
+	var e;
+	managed(() => {
+		if (fn !== (fn = get_fn())) {
+			if (e) {
+				destroy_effect(e);
+				e = null;
+			}
+			if (fn) e = branch(() => {
+				effect(() => fn(node));
+			});
+		}
+	});
+}
+// node_modules/.deno/clsx@2.1.1/node_modules/clsx/dist/clsx.mjs
+function r(e) {
+	var t, f, n = "";
+	if ("string" == typeof e || "number" == typeof e) n += e;
+	else if ("object" == typeof e) if (Array.isArray(e)) {
+		var o = e.length;
+		for (t = 0; t < o; t++) e[t] && (f = r(e[t])) && (n && (n += " "), n += f);
+	} else for (f in e) e[f] && (n && (n += " "), n += f);
+	return n;
+}
+function clsx$1() {
+	for (var e, t, f = 0, n = "", o = arguments.length; f < o; f++) (e = arguments[f]) && (t = r(e)) && (n && (n += " "), n += t);
+	return n;
+}
 // node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/shared/attributes.js
+/**
+* Small wrapper around clsx to preserve Svelte's (weird) handling of falsy values.
+* TODO Svelte 6 revisit this, and likely turn all falsy values into the empty string (what clsx also does)
+* @param  {any} value
+*/
+function clsx(value) {
+	if (typeof value === "object") return clsx$1(value);
+	else return value ?? "";
+}
 var whitespace = [..." 	\n\r\f\xA0\v﻿"];
 /**
 * @param {any} value
@@ -4263,6 +4582,90 @@ function to_class(value, hash, directives) {
 		}
 	}
 	return classname === "" ? null : classname;
+}
+/**
+*
+* @param {Record<string,any>} styles
+* @param {boolean} important
+*/
+function append_styles(styles, important = false) {
+	var separator = important ? " !important;" : ";";
+	var css = "";
+	for (var key of Object.keys(styles)) {
+		var value = styles[key];
+		if (value != null && value !== "") css += " " + key + ": " + value + separator;
+	}
+	return css;
+}
+/**
+* @param {string} name
+* @returns {string}
+*/
+function to_css_name(name) {
+	if (name[0] !== "-" || name[1] !== "-") return name.toLowerCase();
+	return name;
+}
+/**
+* @param {any} value
+* @param {Record<string, any> | [Record<string, any>, Record<string, any>]} [styles]
+* @returns {string | null}
+*/
+function to_style(value, styles) {
+	if (styles) {
+		var new_style = "";
+		/** @type {Record<string,any> | undefined} */
+		var normal_styles;
+		/** @type {Record<string,any> | undefined} */
+		var important_styles;
+		if (Array.isArray(styles)) {
+			normal_styles = styles[0];
+			important_styles = styles[1];
+		} else normal_styles = styles;
+		if (value) {
+			value = String(value).replaceAll(/\/\*.*?\*\//g, "").trim();
+			/** @type {boolean | '"' | "'"} */
+			var in_str = false;
+			var in_apo = 0;
+			var in_comment = false;
+			var reserved_names = [];
+			if (normal_styles) reserved_names.push(...Object.keys(normal_styles).map(to_css_name));
+			if (important_styles) reserved_names.push(...Object.keys(important_styles).map(to_css_name));
+			var start_index = 0;
+			var name_index = -1;
+			const len = value.length;
+			for (var i = 0; i < len; i++) {
+				var c = value[i];
+				if (in_comment) {
+					if (c === "/" && value[i - 1] === "*") in_comment = false;
+				} else if (in_str) {
+					if (in_str === c) in_str = false;
+				} else if (c === "/" && value[i + 1] === "*") in_comment = true;
+				else if (c === "\"" || c === "'") in_str = c;
+				else if (c === "(") in_apo++;
+				else if (c === ")") in_apo--;
+				if (!in_comment && in_str === false && in_apo === 0) {
+					if (c === ":" && name_index === -1) name_index = i;
+					else if (c === ";" || i === len - 1) {
+						if (name_index !== -1) {
+							var name = to_css_name(value.substring(start_index, name_index).trim());
+							if (!reserved_names.includes(name)) {
+								if (c !== ";") i++;
+								var property = value.substring(start_index, i).trim();
+								new_style += " " + property + ";";
+							}
+						}
+						start_index = i + 1;
+						name_index = -1;
+					}
+				}
+			}
+		}
+		if (normal_styles) new_style += append_styles(normal_styles);
+		if (important_styles) new_style += append_styles(important_styles, true);
+		new_style = new_style.trim();
+		return new_style === "" ? null : new_style;
+	}
+	return value == null ? null : String(value);
 }
 // node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/client/dom/elements/class.js
 /**
@@ -4290,11 +4693,192 @@ function set_class(dom, is_html, value, hash, prev_classes, next_classes) {
 	}
 	return next_classes;
 }
+// node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/client/dom/elements/style.js
+/**
+* @param {Element & ElementCSSInlineStyle} dom
+* @param {Record<string, any>} prev
+* @param {Record<string, any>} next
+* @param {string} [priority]
+*/
+function update_styles(dom, prev = {}, next, priority) {
+	for (var key in next) {
+		var value = next[key];
+		if (prev[key] !== value) {
+			if (next[key] == null) dom.style.removeProperty(key);
+			else dom.style.setProperty(key, value, priority);
+		}
+	}
+}
+/**
+* @param {Element & ElementCSSInlineStyle} dom
+* @param {string | null} value
+* @param {Record<string, any> | [Record<string, any>, Record<string, any>]} [prev_styles]
+* @param {Record<string, any> | [Record<string, any>, Record<string, any>]} [next_styles]
+*/
+function set_style(dom, value, prev_styles, next_styles) {
+	var prev = dom[STYLE_CACHE];
+	if (hydrating || prev !== value) {
+		var next_style_attr = to_style(value, next_styles);
+		if (!hydrating || next_style_attr !== dom.getAttribute("style")) {
+			if (next_style_attr == null) dom.removeAttribute("style");
+			else dom.style.cssText = next_style_attr;
+		}
+		/** @type {any} */ dom[STYLE_CACHE] = value;
+	} else if (next_styles) {
+		if (Array.isArray(next_styles)) {
+			update_styles(dom, prev_styles?.[0], next_styles[0]);
+			update_styles(dom, prev_styles?.[1], next_styles[1], "important");
+		} else update_styles(dom, prev_styles, next_styles);
+	}
+	return next_styles;
+}
+// node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/client/dom/elements/bindings/select.js
+/**
+* Sets the `selected` attribute on an option so form reset can restore it.
+* @param {HTMLOptionElement} option
+* @param {boolean} selected
+*/
+function set_selected(option, selected) {
+	if (selected) {
+		if (!option.hasAttribute("selected")) option.setAttribute("selected", "");
+	} else option.removeAttribute("selected");
+}
+/**
+* Sets the options a form reset should restore. The first call selects
+* them if nothing has set a value, later calls leave the current selection alone.
+* @param {HTMLSelectElement} select
+* @param {any} value
+*/
+function set_default_select_value(select, value) {
+	var mounting = !("__defaultValue" in select);
+	if (!mounting && select.__defaultValue === value) return;
+	select.__defaultValue = value;
+	apply_default_select_value(select, !mounting || "__value" in select);
+}
+/**
+* Marks the options matching `__defaultValue` as selected. Without `preserve`
+* a newly matching option gets selected, as an inserted `<option selected>` would.
+* @param {HTMLSelectElement} select
+* @param {boolean} preserve
+*/
+function apply_default_select_value(select, preserve) {
+	var value = select.__defaultValue;
+	var multiple = select.multiple;
+	var values = multiple ? value ?? [] : null;
+	if (multiple && !is_array(values)) return;
+	var index = select.selectedIndex;
+	var selected = preserve && multiple ? new Set(select.selectedOptions) : null;
+	for (var option of select.options) {
+		var option_value = get_option_value(option);
+		set_selected(option, multiple ? values.includes(option_value) : is(option_value, value));
+	}
+	if (!preserve) return;
+	if (selected !== null) for (option of select.options) {
+		var was_selected = selected.has(option);
+		if (option.selected !== was_selected) option.selected = was_selected;
+	}
+	else if (select.selectedIndex !== index) select.selectedIndex = index;
+}
+/**
+* Selects the correct option(s) (depending on whether this is a multiple select)
+* @template V
+* @param {HTMLSelectElement} select
+* @param {V} value
+* @param {boolean} mounting
+*/
+function select_option(select, value, mounting = false) {
+	if (select.multiple) {
+		if (value == void 0) return;
+		if (!is_array(value)) return select_multiple_invalid_value();
+		for (var option of select.options) option.selected = value.includes(get_option_value(option));
+		return;
+	}
+	for (option of select.options) if (is(get_option_value(option), value)) {
+		option.selected = true;
+		return;
+	}
+	if (!mounting || value !== void 0) select.selectedIndex = -1;
+}
+/**
+* Sets up a mutation observer to sync the current selection
+* and default to the dom when the options change, for example
+* when they are inside an `#each` block. Called once per `<select>`,
+* by the compiled output or by `attribute_effect` for spreads.
+* @param {HTMLSelectElement} select
+*/
+function init_select(select) {
+	var observer = new MutationObserver((entries) => {
+		if (entries.every(is_selectedcontent_mutation)) return;
+		if ("__defaultValue" in select) apply_default_select_value(select, false);
+		if ("__value" in select) select_option(select, select.__value);
+	});
+	observer.observe(select, {
+		childList: true,
+		subtree: true,
+		attributes: true,
+		attributeFilter: ["value"]
+	});
+	teardown(() => {
+		observer.disconnect();
+	});
+}
+/** @param {HTMLOptionElement} option */
+function get_option_value(option) {
+	if ("__value" in option) return option.__value;
+	else return option.value;
+}
+/**
+* Returns `true` if the mutation stems from the browser mirroring the selected
+* option's content into `<selectedcontent>`, or from us replacing the
+* `<selectedcontent>` element with a clone of itself
+* @param {MutationRecord} entry
+*/
+function is_selectedcontent_mutation(entry) {
+	if (entry.target.closest("selectedcontent") !== null) return true;
+	if (entry.type === "childList") {
+		var nodes = [...entry.addedNodes, ...entry.removedNodes];
+		return nodes.length > 0 && nodes.every((node) => node.nodeName === "SELECTEDCONTENT");
+	}
+	return false;
+}
 // node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/client/dom/elements/attributes.js
 /** @import { Blocker, Effect } from '#client' */
+var CLASS = Symbol("class");
+var STYLE = Symbol("style");
 var IS_CUSTOM_ELEMENT = Symbol("is custom element");
 var IS_HTML = Symbol("is html");
 var LINK_TAG = IS_XHTML ? "link" : "LINK";
+var INPUT_TAG = IS_XHTML ? "input" : "INPUT";
+var OPTION_TAG = IS_XHTML ? "option" : "OPTION";
+var SELECT_TAG = IS_XHTML ? "select" : "SELECT";
+var PROGRESS_TAG = IS_XHTML ? "progress" : "PROGRESS";
+/**
+* The value/checked attribute in the template actually corresponds to the defaultValue property, so we need
+* to remove it upon hydration to avoid a bug when someone resets the form value.
+* @param {HTMLInputElement} input
+* @returns {void}
+*/
+function remove_input_defaults(input) {
+	if (!hydrating) return;
+	var already_removed = false;
+	var remove_defaults = () => {
+		if (already_removed) return;
+		already_removed = true;
+		if (input.hasAttribute("value")) {
+			var value = input.value;
+			set_attribute(input, "value", null);
+			input.value = value;
+		}
+		if (input.hasAttribute("checked")) {
+			var checked = input.checked;
+			set_attribute(input, "checked", null);
+			input.checked = checked;
+		}
+	};
+	/** @type {any} */ input[FORM_RESET_HANDLER] = remove_defaults;
+	queue_micro_task(remove_defaults);
+	add_form_reset_listener();
+}
 /**
 * @param {Element} element
 * @param {string} attribute
@@ -4316,6 +4900,182 @@ function set_attribute(element, attribute, value, skip_warning) {
 	if (value == null) element.removeAttribute(attribute);
 	else if (typeof value !== "string" && get_setters(element).has(attribute)) element[attribute] = value;
 	else if (!(hydrating && (typeof value === "number" || typeof value === "boolean") && previous === String(value))) element.setAttribute(attribute, value);
+}
+/**
+* Spreads attributes onto a DOM element, taking into account the currently set attributes
+* @param {Element & ElementCSSInlineStyle} element
+* @param {Record<string | symbol, any> | undefined} prev
+* @param {Record<string | symbol, any>} next New attributes - this function mutates this object
+* @param {string} [css_hash]
+* @param {boolean} [should_remove_defaults]
+* @param {boolean} [skip_warning]
+* @returns {Record<string, any>}
+*/
+function set_attributes(element, prev, next, css_hash, should_remove_defaults = false, skip_warning = false) {
+	if (hydrating && should_remove_defaults && element.nodeName === INPUT_TAG) {
+		if (!("defaultValue" in next || "defaultChecked" in next)) remove_input_defaults(element);
+	}
+	var attributes = get_attributes(element);
+	var is_custom_element = attributes[IS_CUSTOM_ELEMENT];
+	var preserve_attribute_case = !attributes[IS_HTML];
+	let is_hydrating_custom_element = hydrating && is_custom_element;
+	if (is_hydrating_custom_element) set_hydrating(false);
+	var current = prev || {};
+	var is_option_element = element.nodeName === OPTION_TAG;
+	var is_select_element = element.nodeName === SELECT_TAG;
+	try {
+		for (var key in prev) if (!(key in next) && key[0] + key[1] !== "$$") next[key] = null;
+		if (next.class) next.class = clsx(next.class);
+		else if (css_hash || next[CLASS]) next.class = null;
+		if (next[STYLE]) next.style ??= null;
+		var setters = get_setters(element);
+		if (element.nodeName === INPUT_TAG && "type" in next && ("value" in next || "__value" in next)) {
+			var type = next.type;
+			if (type !== current.type || type === void 0 && element.hasAttribute("type")) {
+				current.type = type;
+				set_attribute(element, "type", type, skip_warning);
+			}
+		}
+		for (const key in next) {
+			let value = next[key];
+			if (is_option_element && key === "value" && value == null) {
+				element.value = element.__value = "";
+				current[key] = value;
+				continue;
+			}
+			if (key === "class") {
+				set_class(element, element.namespaceURI === "http://www.w3.org/1999/xhtml", value, css_hash, prev?.[CLASS], next[CLASS]);
+				current[key] = value;
+				current[CLASS] = next[CLASS];
+				continue;
+			}
+			if (key === "style") {
+				set_style(element, value, prev?.[STYLE], next[STYLE]);
+				current[key] = value;
+				current[STYLE] = next[STYLE];
+				continue;
+			}
+			var prev_value = current[key];
+			if (value === prev_value && !(value === void 0 && element.hasAttribute(key))) continue;
+			current[key] = value;
+			var prefix = key[0] + key[1];
+			if (prefix === "$$") continue;
+			if (prefix === "on") {
+				/** @type {{ capture?: true }} */
+				const opts = {};
+				const event_handle_key = "$$" + key;
+				let event_name = key.slice(2);
+				var is_delegated = can_delegate_event(event_name);
+				if (is_capture_event(event_name)) {
+					event_name = event_name.slice(0, -7);
+					opts.capture = true;
+				}
+				if (!is_delegated && prev_value) {
+					if (value != null) continue;
+					element.removeEventListener(event_name, current[event_handle_key], opts);
+					current[event_handle_key] = null;
+				}
+				if (is_delegated) {
+					delegated(event_name, element, value);
+					delegate([event_name]);
+				} else if (value != null) {
+					/**
+					* @this {any}
+					* @param {Event} evt
+					*/
+					function handle(evt) {
+						current[key].call(this, evt);
+					}
+					current[event_handle_key] = create_event(event_name, element, handle, opts);
+				}
+			} else if (key === "style") set_attribute(element, key, value);
+			else if (key === "autofocus") autofocus(element, Boolean(value));
+			else if (!is_custom_element && (key === "__value" || key === "value" && value != null)) {
+				element.__value = value;
+				if (prev_value == null || element.value !== value || value === 0 && element.nodeName === PROGRESS_TAG) element.value = value;
+			} else if (key === "selected" && is_option_element) set_selected(element, value);
+			else {
+				var name = key;
+				if (!preserve_attribute_case) name = normalize_attribute(name);
+				var is_default = name === "defaultValue" || name === "defaultChecked";
+				if (is_select_element && name === "defaultValue") continue;
+				if (value == null && !is_custom_element && !is_default) {
+					attributes[key] = null;
+					if (name === "value" || name === "checked") {
+						let input = element;
+						const use_default = prev === void 0;
+						if (name === "value") {
+							let previous = input.defaultValue;
+							input.removeAttribute(name);
+							input.defaultValue = previous;
+							input.value = input.__value = use_default ? previous : null;
+						} else {
+							let previous = input.defaultChecked;
+							input.removeAttribute(name);
+							input.defaultChecked = previous;
+							input.checked = use_default ? previous : false;
+						}
+					} else element.removeAttribute(key);
+				} else if (is_default || (is_custom_element || typeof value !== "string") && setters.has(name)) {
+					element[name] = value;
+					if (name in attributes) attributes[name] = UNINITIALIZED;
+				} else if (typeof value !== "function") set_attribute(element, name, value, skip_warning);
+			}
+		}
+	} finally {
+		if (is_hydrating_custom_element) set_hydrating(true);
+	}
+	return current;
+}
+/**
+* @param {Element & ElementCSSInlineStyle} element
+* @param {(...expressions: any) => Record<string | symbol, any>} fn
+* @param {Array<() => any>} sync
+* @param {Array<() => Promise<any>>} async
+* @param {Blocker[]} blockers
+* @param {string} [css_hash]
+* @param {boolean} [should_remove_defaults]
+* @param {boolean} [skip_warning]
+*/
+function attribute_effect(element, fn, sync = [], async = [], blockers = [], css_hash, should_remove_defaults = false, skip_warning = false) {
+	flatten(blockers, sync, async, (values) => {
+		/** @type {Record<string | symbol, any> | undefined} */
+		var prev = void 0;
+		/** @type {Record<symbol, Effect>} */
+		var effects = {};
+		var is_select = element.nodeName === SELECT_TAG;
+		var inited = false;
+		managed(() => {
+			var next = fn(...values.map(get));
+			/** @type {Record<string | symbol, any>} */
+			var current = set_attributes(element, prev, next, css_hash, should_remove_defaults, skip_warning);
+			if (inited && is_select) {
+				var select = element;
+				if ("defaultValue" in next) set_default_select_value(select, next.defaultValue);
+				if ("value" in next) select_option(select, next.value);
+			}
+			for (let symbol of Object.getOwnPropertySymbols(effects)) if (!next[symbol]) destroy_effect(effects[symbol]);
+			for (let symbol of Object.getOwnPropertySymbols(next)) {
+				var n = next[symbol];
+				if (symbol.description === "@attach" && (!prev || n !== prev[symbol])) {
+					if (effects[symbol]) destroy_effect(effects[symbol]);
+					effects[symbol] = branch(() => attach(element, () => n));
+				}
+				current[symbol] = n;
+			}
+			prev = current;
+		});
+		if (is_select) {
+			var select = element;
+			effect(() => {
+				var attrs = prev;
+				if ("defaultValue" in attrs) set_default_select_value(select, attrs.defaultValue);
+				select_option(select, attrs.value, true);
+				init_select(select);
+			});
+		}
+		inited = true;
+	});
 }
 /**
 *
@@ -4558,10 +5318,12 @@ var SveltePane = class {
 	* `component` and `props` are what to draw; `css` is the built stylesheet; `className` goes on
 	* the pane's element. `uri`, `title`, `iconName` and `allowedLocations` answer Pulsar's
 	* questions, and `serialize(saved)` builds the saved state (with its `deserializer`) from what
-	* the component's own `serialize()` returned.
+	* the component's own `serialize()` returned. `slots` maps slot names to light-DOM elements, and
+	* `onDestroy` runs when the pane closes.
 	*/
-	constructor({ component, props = {}, css, className, uri, title, iconName, allowedLocations, serialize }) {
+	constructor({ component, props = {}, css, className, uri, title, iconName, allowedLocations, serialize, slots = {}, onDestroy }) {
 		this.events = emitter();
+		this.onDestroyed = onDestroy;
 		this.uri = uri;
 		this.title = title;
 		this.iconName = iconName;
@@ -4572,6 +5334,10 @@ var SveltePane = class {
 		if (className) this.element.className = className;
 		this.element.tabIndex = -1;
 		this.element.addEventListener("mousedown", () => this.terminatePendingState(), { once: true });
+		for (const [name, el] of Object.entries(slots)) {
+			el.slot = name;
+			this.element.append(el);
+		}
 		this.ui = mountInShadow(this.element, component, {
 			...props,
 			setTitle: (t) => this.setTitle(t)
@@ -4618,6 +5384,7 @@ var SveltePane = class {
 	destroy() {
 		this.themes.dispose();
 		this.ui.destroy();
+		this.onDestroyed?.();
 		this.element.remove();
 		this.events.emit("did-destroy");
 		this.events.clear();
@@ -4625,75 +5392,72 @@ var SveltePane = class {
 };
 // node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/internal/disclose-version.js
 if (typeof window !== "undefined") ((window.__svelte ??= {}).v ??= /* @__PURE__ */ new Set()).add("5");
-// node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/reactivity/set.js
+// node_modules/.deno/svelte@5.57.3/node_modules/svelte/src/reactivity/map.js
 /** @import { Source } from '#client' */
-var read_methods = [
-	"forEach",
-	"isDisjointFrom",
-	"isSubsetOf",
-	"isSupersetOf"
-];
-var set_like_methods = [
-	"difference",
-	"intersection",
-	"symmetricDifference",
-	"union"
-];
-var inited = false;
 /**
-* A reactive version of the built-in [`Set`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Set) object.
-* Reading contents of the set (by iterating, or by reading `set.size` or calling `set.has(...)` as in the [example](https://svelte.dev/playground/53438b51194b4882bcc18cddf9f96f15) below) in an [effect](https://svelte.dev/docs/svelte/$effect) or [derived](https://svelte.dev/docs/svelte/$derived)
-* will cause it to be re-evaluated as necessary when the set is updated.
+* A reactive version of the built-in [`Map`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map) object.
+* Reading contents of the map (by iterating, or by reading `map.size` or calling `map.get(...)` or `map.has(...)` as in the [tic-tac-toe example](https://svelte.dev/playground/0b0ff4aa49c9443f9b47fe5203c78293) below) in an [effect](https://svelte.dev/docs/svelte/$effect) or [derived](https://svelte.dev/docs/svelte/$derived)
+* will cause it to be re-evaluated as necessary when the map is updated.
 *
-* Note that values in a reactive set are _not_ made [deeply reactive](https://svelte.dev/docs/svelte/$state#Deep-state).
+* Note that values in a reactive map are _not_ made [deeply reactive](https://svelte.dev/docs/svelte/$state#Deep-state).
 *
 * ```svelte
 * <script>
-* 	import { SvelteSet } from 'svelte/reactivity';
-* 	let monkeys = new SvelteSet();
+* 	import { SvelteMap } from 'svelte/reactivity';
+* 	import { result } from './game.js';
 *
-* 	function toggle(monkey) {
-* 		if (monkeys.has(monkey)) {
-* 			monkeys.delete(monkey);
-* 		} else {
-* 			monkeys.add(monkey);
-* 		}
+* 	let board = new SvelteMap();
+* 	let player = $state('x');
+* 	let winner = $derived(result(board));
+*
+* 	function reset() {
+* 		player = 'x';
+* 		board.clear();
 * 	}
 * <\/script>
 *
-* {#each ['🙈', '🙉', '🙊'] as monkey}
-* 	<button onclick={() => toggle(monkey)}>{monkey}</button>
-* {/each}
+* <div class="board">
+* 	{#each Array(9), i}
+* 		<button
+* 			disabled={board.has(i) || winner}
+* 			onclick={() => {
+* 				board.set(i, player);
+* 				player = player === 'x' ? 'o' : 'x';
+* 			}}
+* 		>{board.get(i)}</button>
+* 	{/each}
+* </div>
 *
-* <button onclick={() => monkeys.clear()}>clear</button>
-*
-* {#if monkeys.has('🙈')}<p>see no evil</p>{/if}
-* {#if monkeys.has('🙉')}<p>hear no evil</p>{/if}
-* {#if monkeys.has('🙊')}<p>speak no evil</p>{/if}
+* {#if winner}
+* 	<p>{winner} wins!</p>
+* 	<button onclick={reset}>reset</button>
+* {:else}
+* 	<p>{player} is next</p>
+* {/if}
 * ```
 *
-* @template T
-* @extends {Set<T>}
+* @template K
+* @template V
+* @extends {Map<K, V>}
 */
-var SvelteSet = class SvelteSet extends Set {
-	/** @type {Map<T, Source<boolean>>} */
+var SvelteMap = class extends Map {
+	/** @type {Map<K, Source<number>>} */
 	#sources = /* @__PURE__ */ new Map();
 	#version = /* @__PURE__ */ state(0);
 	#size = /* @__PURE__ */ state(0);
 	#update_version = update_version || -1;
 	/**
-	* @param {Iterable<T> | null | undefined} [value]
+	* @param {Iterable<readonly [K, V]> | null | undefined} [value]
 	*/
 	constructor(value) {
 		super();
 		if (value) {
-			for (var element of value) super.add(element);
+			for (var [key, v] of value) super.set(key, v);
 			this.#size.v = super.size;
 		}
-		if (!inited) this.#init();
 	}
 	/**
-	* If the source is being created inside the same reaction as the SvelteSet instance,
+	* If the source is being created inside the same reaction as the SvelteMap instance,
 	* we use `state` so that it will not be a dependency of the reaction. Otherwise we
 	* use `source` so it will be.
 	*
@@ -4704,93 +5468,194 @@ var SvelteSet = class SvelteSet extends Set {
 	#source(value) {
 		return update_version === this.#update_version ? /* @__PURE__ */ state(value) : source(value);
 	}
-	#init() {
-		inited = true;
-		var proto = SvelteSet.prototype;
-		var set_proto = Set.prototype;
-		for (const method of read_methods) proto[method] = function(...v) {
-			get(this.#version);
-			return set_proto[method].apply(this, v);
-		};
-		for (const method of set_like_methods) proto[method] = function(...v) {
-			get(this.#version);
-			var set = set_proto[method].apply(this, v);
-			return new SvelteSet(set);
-		};
-	}
-	/** @param {T} value */
-	has(value) {
-		var has = super.has(value);
+	/** @param {K} key */
+	has(key) {
 		var sources = this.#sources;
-		var s = sources.get(value);
+		var s = sources.get(key);
 		if (s === void 0) {
-			if (!has) {
+			if (super.has(key)) {
+				s = this.#source(0);
+				sources.set(key, s);
+			} else {
 				get(this.#version);
 				return false;
 			}
-			s = this.#source(true);
-			sources.set(value, s);
 		}
 		get(s);
-		return has;
+		return true;
 	}
-	/** @param {T} value */
-	add(value) {
-		if (!super.has(value)) {
-			super.add(value);
-			set(this.#size, super.size);
-			increment(this.#version);
-		}
-		return this;
+	/**
+	* @param {(value: V, key: K, map: Map<K, V>) => void} callbackfn
+	* @param {any} [this_arg]
+	*/
+	forEach(callbackfn, this_arg) {
+		this.#read_all();
+		super.forEach(callbackfn, this_arg);
 	}
-	/** @param {T} value */
-	delete(value) {
-		var deleted = super.delete(value);
+	/** @param {K} key */
+	get(key) {
 		var sources = this.#sources;
-		var s = sources.get(value);
-		if (s !== void 0) {
-			sources.delete(value);
-			set(s, false);
+		var s = sources.get(key);
+		if (s === void 0) {
+			if (super.has(key)) {
+				s = this.#source(0);
+				sources.set(key, s);
+			} else {
+				get(this.#version);
+				return;
+			}
 		}
-		if (deleted) {
+		get(s);
+		return super.get(key);
+	}
+	/**
+	* @param {K} key
+	* @param {V} value
+	* */
+	getOrInsert(key, value) {
+		if (!super.has(key)) this.set(key, value);
+		return this.get(key);
+	}
+	/**
+	* @param {K} key
+	* @param {(key: K) => V} callbackFn
+	*/
+	getOrInsertComputed(key, callbackFn) {
+		if (!super.has(key)) this.set(key, callbackFn(key));
+		return this.get(key);
+	}
+	/**
+	* @param {K} key
+	* @param {V} value
+	* */
+	set(key, value) {
+		var sources = this.#sources;
+		var s = sources.get(key);
+		var prev_res = super.get(key);
+		var res = super.set(key, value);
+		var version = this.#version;
+		if (s === void 0) {
+			s = this.#source(0);
+			sources.set(key, s);
+			set(this.#size, super.size);
+			increment(version);
+		} else if (prev_res !== value) {
+			increment(s);
+			var v_reactions = version.reactions === null ? null : new Set(version.reactions);
+			if (v_reactions === null || !s.reactions?.every((r) => v_reactions.has(r))) increment(version);
+		}
+		return res;
+	}
+	/** @param {K} key */
+	delete(key) {
+		var sources = this.#sources;
+		var s = sources.get(key);
+		var res = super.delete(key);
+		if (s !== void 0) {
+			sources.delete(key);
+			set(s, -1);
+		}
+		if (res) {
 			set(this.#size, super.size);
 			increment(this.#version);
 		}
-		return deleted;
+		return res;
 	}
 	clear() {
 		if (super.size === 0) return;
 		super.clear();
 		var sources = this.#sources;
-		for (var s of sources.values()) set(s, false);
-		sources.clear();
 		set(this.#size, 0);
+		for (var s of sources.values()) set(s, -1);
 		increment(this.#version);
+		sources.clear();
+	}
+	#read_all() {
+		get(this.#version);
+		var sources = this.#sources;
+		if (this.#size.v !== sources.size) {
+			for (var key of super.keys()) if (!sources.has(key)) {
+				var s = this.#source(0);
+				sources.set(key, s);
+			}
+		}
+		for ([, s] of this.#sources) get(s);
 	}
 	keys() {
-		return this.values();
+		get(this.#version);
+		return super.keys();
 	}
 	values() {
-		get(this.#version);
+		this.#read_all();
 		return super.values();
 	}
 	entries() {
-		get(this.#version);
+		this.#read_all();
 		return super.entries();
 	}
 	[Symbol.iterator]() {
-		return this.keys();
+		return this.entries();
 	}
 	get size() {
-		return get(this.#size);
+		get(this.#size);
+		return super.size;
 	}
 };
+// workbook/ConversationEntry.svelte
+var root$6 = /* @__PURE__ */ from_html(`<span class="text-surface-700-300"> </span>`);
+var root_1$5 = /* @__PURE__ */ from_html(`<p class="mt-1 whitespace-pre-wrap"> </p>`);
+var root_2$4 = /* @__PURE__ */ from_html(`<div class="mt-1"></div>`);
+var root_3$3 = /* @__PURE__ */ from_html(`<details class="entry border-surface-300-700 my-1 ml-6 border-l-2 pl-3 text-sm"><summary class="cursor-pointer"><span class="font-semibold"> </span> <!> <span class="text-surface-700-300"> </span></summary> <!></details>`);
+function ConversationEntry($$anchor, $$props) {
+	push($$props, true);
+	var details = root_3$3();
+	var summary = child(details);
+	var span = child(summary);
+	var text = only_child(span, true);
+	var node = sibling(span, 2);
+	var consequent = ($$anchor) => {
+		var span_1 = root$6();
+		var text_1 = only_child(span_1);
+		template_effect(() => set_text(text_1, `· ${$$props.entry.time ?? ""}`));
+		append($$anchor, span_1);
+	};
+	if_block(node, ($$render) => {
+		if ($$props.entry.time) $$render(consequent);
+	});
+	var text_2 = only_child(sibling(node, 2));
+	reset(summary);
+	var node_1 = sibling(summary, 2);
+	var consequent_1 = ($$anchor) => {
+		var p = root_1$5();
+		var text_3 = only_child(p, true);
+		template_effect(() => set_text(text_3, $$props.entry.body));
+		append($$anchor, p);
+	};
+	var alternate = ($$anchor) => {
+		var div = root_2$4();
+		action(div, ($$node, $$action_arg) => attachNodes?.($$node, $$action_arg), () => $$props.entry.nodes);
+		append($$anchor, div);
+	};
+	if_block(node_1, ($$render) => {
+		if ($$props.entry.kind === "message") $$render(consequent_1);
+		else $$render(alternate, -1);
+	});
+	reset(details);
+	template_effect(($0) => {
+		details.open = $0;
+		set_text(text, $$props.entry.kind === "message" ? "You" : "Agent");
+		set_text(text_2, `· ${$$props.entry.summary ?? ""}`);
+	}, [() => $$props.isOpen($$props.entry.key, $$props.entry.startOpen)]);
+	event("toggle", details, (e) => $$props.setOpen($$props.entry.key, e.currentTarget.open));
+	append($$anchor, details);
+	pop();
+}
 // workbook/FileView.svelte
-var root$3 = /* @__PURE__ */ from_html(`<pre class="mt-2"><code> </code></pre>`);
-var root_1$2 = /* @__PURE__ */ from_html(`<details class="card border-surface-200-800 my-3 border p-3"><summary class="cursor-pointer"><code> </code> <span> </span></summary> <!></details>`);
+var root$5 = /* @__PURE__ */ from_html(`<pre class="mt-2"><code> </code></pre>`);
+var root_1$4 = /* @__PURE__ */ from_html(`<details class="card border-surface-200-800 my-3 border p-3"><summary class="cursor-pointer"><code> </code> <span> </span></summary> <!></details>`);
 function FileView($$anchor, $$props) {
 	push($$props, true);
-	var details = root_1$2();
+	var details = root_1$4();
 	var summary = child(details);
 	var code = child(summary);
 	var text = only_child(code, true);
@@ -4799,7 +5664,7 @@ function FileView($$anchor, $$props) {
 	reset(summary);
 	var node = sibling(summary, 2);
 	var consequent = ($$anchor) => {
-		var pre = root$3();
+		var pre = root$5();
 		var text_2 = only_child(child(pre), true);
 		reset(pre);
 		template_effect(() => set_text(text_2, $$props.file.text));
@@ -4814,20 +5679,160 @@ function FileView($$anchor, $$props) {
 		set_text(text, $$props.file.path ?? "(no path)");
 		set_class(span, 1, `ml-2 text-sm ${$$props.file.error ? "text-error-500" : "text-surface-700-300"}`);
 		set_text(text_1, $$props.file.state);
-	}, [() => $$props.open.has($$props.file.key)]);
-	event("toggle", details, (e) => $$props.onToggle($$props.file.key, e.currentTarget.open));
+	}, [() => $$props.isOpen($$props.file.key, false)]);
+	event("toggle", details, (e) => $$props.setOpen($$props.file.key, e.currentTarget.open));
 	append($$anchor, details);
+	pop();
+}
+// workbook/ResultView.svelte
+var root$4 = /* @__PURE__ */ from_html(`<th> </th>`);
+var root_1$3 = /* @__PURE__ */ from_html(`<td> </td>`);
+var root_2$3 = /* @__PURE__ */ from_html(`<tr></tr>`);
+var root_3$2 = /* @__PURE__ */ from_html(`<div class="table-wrap"><table class="table"><thead><tr></tr></thead><tbody></tbody></table></div>`);
+var root_4$2 = /* @__PURE__ */ from_html(`<tr><th class="text-left"> </th><td> </td></tr>`);
+var root_5$2 = /* @__PURE__ */ from_html(`<table class="table"><tbody></tbody></table>`);
+var root_6$1 = /* @__PURE__ */ from_html(`<pre><code> </code></pre>`);
+var root_7$1 = /* @__PURE__ */ from_html(`<div class="text-sm font-semibold">Result</div> <!>`, 1);
+function ResultView($$anchor, $$props) {
+	push($$props, true);
+	const isRecord = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+	const rows = /* @__PURE__ */ user_derived(() => Array.isArray($$props.value) && $$props.value.length > 0 && $$props.value.every(isRecord) ? $$props.value : null);
+	const columns = /* @__PURE__ */ user_derived(() => get(rows) ? [...new Set(get(rows).flatMap((r) => Object.keys(r)))] : []);
+	const cell = (v) => v === null || v === void 0 ? "" : typeof v === "object" ? JSON.stringify(v) : String(v);
+	var fragment = root_7$1();
+	var node = sibling(first_child(fragment), 2);
+	var consequent = ($$anchor) => {
+		var div = root_3$2();
+		var table = child(div);
+		var thead = child(table);
+		var tr = child(thead);
+		each(tr, 21, () => get(columns), index, ($$anchor, column) => {
+			var th = root$4();
+			var text = only_child(th, true);
+			template_effect(() => set_text(text, get(column)));
+			append($$anchor, th);
+		});
+		reset(tr);
+		reset(thead);
+		var tbody = sibling(thead);
+		each(tbody, 21, () => get(rows), index, ($$anchor, row) => {
+			var tr_1 = root_2$3();
+			each(tr_1, 21, () => get(columns), index, ($$anchor, column) => {
+				var td = root_1$3();
+				var text_1 = only_child(td, true);
+				template_effect(($0) => set_text(text_1, $0), [() => cell(get(row)[get(column)])]);
+				append($$anchor, td);
+			});
+			reset(tr_1);
+			append($$anchor, tr_1);
+		});
+		reset(tbody);
+		reset(table);
+		reset(div);
+		append($$anchor, div);
+	};
+	var consequent_1 = ($$anchor) => {
+		var table_1 = root_5$2();
+		var tbody_1 = child(table_1);
+		each(tbody_1, 21, () => Object.entries($$props.value), index, ($$anchor, $$item) => {
+			var $$array = /* @__PURE__ */ user_derived(() => to_array(get($$item), 2));
+			let name = () => get($$array)[0];
+			let v = () => get($$array)[1];
+			var tr_2 = root_4$2();
+			var th_1 = child(tr_2);
+			var text_2 = only_child(th_1, true);
+			var text_3 = only_child(sibling(th_1), true);
+			reset(tr_2);
+			template_effect(($0) => {
+				set_text(text_2, name());
+				set_text(text_3, $0);
+			}, [() => cell(v())]);
+			append($$anchor, tr_2);
+		});
+		reset(tbody_1);
+		reset(table_1);
+		append($$anchor, table_1);
+	};
+	var d = /* @__PURE__ */ user_derived(() => isRecord($$props.value));
+	var alternate = ($$anchor) => {
+		var pre = root_6$1();
+		var text_4 = only_child(child(pre), true);
+		reset(pre);
+		template_effect(($0) => set_text(text_4, $0), [() => JSON.stringify($$props.value, null, 2)]);
+		append($$anchor, pre);
+	};
+	if_block(node, ($$render) => {
+		if (get(rows)) $$render(consequent);
+		else if (get(d)) $$render(consequent_1, 1);
+		else $$render(alternate, -1);
+	});
+	append($$anchor, fragment);
+	pop();
+}
+// workbook/OutputBlock.svelte
+var root$3 = /* @__PURE__ */ from_html(`<pre class="m-0 rounded-none"><code> </code></pre>`);
+var root_1$2 = /* @__PURE__ */ from_html(`<div class="px-3 pb-3"><!></div>`);
+var root_2$2 = /* @__PURE__ */ from_html(`<div class="card border-surface-200-800 my-3 border"><div class="border-surface-200-800 flex flex-wrap items-center gap-2 border-b px-3 py-2 text-sm"><span class="font-semibold">Code output</span> <span> </span> <span> </span> <span class="text-surface-700-300"> </span></div> <!> <!></div>`);
+function OutputBlock($$anchor, $$props) {
+	push($$props, true);
+	const TONES = {
+		success: "preset-tonal-success",
+		error: "preset-tonal-error",
+		warning: "preset-tonal-warning",
+		surface: "preset-tonal-surface"
+	};
+	var div = root_2$2();
+	var div_1 = child(div);
+	var span = sibling(child(div_1), 2);
+	var text = only_child(span);
+	var span_1 = sibling(span, 2);
+	var text_1 = only_child(span_1, true);
+	var text_2 = only_child(sibling(span_1, 2), true);
+	reset(div_1);
+	var node = sibling(div_1, 2);
+	var consequent = ($$anchor) => {
+		var pre = root$3();
+		var text_3 = only_child(child(pre), true);
+		reset(pre);
+		template_effect(() => set_text(text_3, $$props.output.text));
+		append($$anchor, pre);
+	};
+	if_block(node, ($$render) => {
+		if ($$props.output.text) $$render(consequent);
+	});
+	var node_1 = sibling(node, 2);
+	var consequent_1 = ($$anchor) => {
+		var div_2 = root_1$2();
+		ResultView(child(div_2), { get value() {
+			return $$props.output.result;
+		} });
+		reset(div_2);
+		append($$anchor, div_2);
+	};
+	if_block(node_1, ($$render) => {
+		if ($$props.output.hasResult) $$render(consequent_1);
+	});
+	reset(div);
+	template_effect(($0) => {
+		set_text(text, `${$$props.output.script ?? ""} · run by you`);
+		set_class(span_1, 1, `badge ${TONES[$$props.output.tone] ?? TONES.surface ?? ""}`);
+		set_text(text_1, $$props.output.state);
+		set_text(text_2, $0);
+	}, [() => [$$props.output.time, $$props.output.duration].filter(Boolean).join(" · ")]);
+	append($$anchor, div);
 	pop();
 }
 // workbook/RunCard.svelte
 var root$2 = /* @__PURE__ */ from_html(`<span> </span>`);
-var root_1$1 = /* @__PURE__ */ from_html(`<p class="mt-2"> </p>`);
-var root_2$1 = /* @__PURE__ */ from_html(`<details class="mt-2"><summary class="text-surface-700-300 cursor-pointer">source</summary> <pre><code> </code></pre></details>`);
-var root_3$1 = /* @__PURE__ */ from_html(`<div><div class="flex flex-wrap items-baseline gap-2"><code> </code> <!></div> <!></div>`);
+var root_1$1 = /* @__PURE__ */ from_html(`<span class="badge preset-tonal-warning">script changed since this run</span>`);
+var root_2$1 = /* @__PURE__ */ from_html(`<span class="ml-auto flex gap-2"><button type="button" class="btn btn-sm preset-tonal-surface">Ask about this step</button> <button type="button" class="btn btn-sm preset-filled-primary-500"> </button></span>`);
+var root_3$1 = /* @__PURE__ */ from_html(`<p class="mt-2"> </p>`);
+var root_4$1 = /* @__PURE__ */ from_html(`<details class="mt-2"><summary class="text-surface-700-300 cursor-pointer">source</summary> <pre><code> </code></pre></details>`);
+var root_5$1 = /* @__PURE__ */ from_html(`<div><div class="flex flex-wrap items-center gap-2"><code> </code> <!> <!> <!></div> <!></div>`);
 function RunCard($$anchor, $$props) {
 	push($$props, true);
 	const sourceKey = /* @__PURE__ */ user_derived(() => `${$$props.run.key}:source`);
-	var div = root_3$1();
+	var div = root_5$1();
 	var div_1 = child(div);
 	var code = child(div_1);
 	var text = only_child(code, true);
@@ -4845,29 +5850,54 @@ function RunCard($$anchor, $$props) {
 	if_block(node, ($$render) => {
 		if ($$props.run.grants) $$render(consequent);
 	});
-	reset(div_1);
-	var node_1 = sibling(div_1, 2);
+	var node_1 = sibling(node, 2);
 	var consequent_1 = ($$anchor) => {
-		var p = root_1$1();
-		var text_2 = only_child(p, true);
-		template_effect(() => set_text(text_2, $$props.run.refused));
+		append($$anchor, root_1$1());
+	};
+	if_block(node_1, ($$render) => {
+		if ($$props.run.changed) $$render(consequent_1);
+	});
+	var node_2 = sibling(node_1, 2);
+	var consequent_2 = ($$anchor) => {
+		var span_2 = root_2$1();
+		var button = child(span_2);
+		var button_1 = sibling(button, 2);
+		var text_2 = only_child(button_1, true);
+		reset(span_2);
+		template_effect(() => {
+			button_1.disabled = !$$props.run.canRun;
+			set_text(text_2, $$props.run.running ? "Running…" : "Run");
+		});
+		delegated("click", button, () => $$props.onAsk($$props.run.id));
+		delegated("click", button_1, () => $$props.onRun($$props.run.id));
+		append($$anchor, span_2);
+	};
+	if_block(node_2, ($$render) => {
+		if (!$$props.run.refused) $$render(consequent_2);
+	});
+	reset(div_1);
+	var node_3 = sibling(div_1, 2);
+	var consequent_3 = ($$anchor) => {
+		var p = root_3$1();
+		var text_3 = only_child(p, true);
+		template_effect(() => set_text(text_3, $$props.run.refused));
 		append($$anchor, p);
 	};
 	var alternate = ($$anchor) => {
-		var details = root_2$1();
+		var details = root_4$1();
 		var pre = sibling(child(details), 2);
-		var text_3 = only_child(child(pre), true);
+		var text_4 = only_child(child(pre), true);
 		reset(pre);
 		reset(details);
 		template_effect(($0) => {
 			details.open = $0;
-			set_text(text_3, $$props.run.source);
-		}, [() => $$props.open.has(get(sourceKey))]);
-		event("toggle", details, (e) => $$props.onToggle(get(sourceKey), e.currentTarget.open));
+			set_text(text_4, $$props.run.source);
+		}, [() => $$props.isOpen(get(sourceKey), !$$props.run.hasRun || $$props.run.changed)]);
+		event("toggle", details, (e) => $$props.setOpen(get(sourceKey), e.currentTarget.open));
 		append($$anchor, details);
 	};
-	if_block(node_1, ($$render) => {
-		if ($$props.run.refused) $$render(consequent_1);
+	if_block(node_3, ($$render) => {
+		if ($$props.run.refused) $$render(consequent_3);
 		else $$render(alternate, -1);
 	});
 	reset(div);
@@ -4878,6 +5908,7 @@ function RunCard($$anchor, $$props) {
 	append($$anchor, div);
 	pop();
 }
+delegate(["click"]);
 // workbook/UnverifiedBlock.svelte
 var root$1 = /* @__PURE__ */ from_html(`<div class="card border-surface-300-700 my-3 border border-dashed p-3"><div class="text-surface-700-300 text-sm"> </div> <pre class="mt-1"><code> </code></pre></div>`);
 function UnverifiedBlock($$anchor, $$props) {
@@ -4898,18 +5929,24 @@ function UnverifiedBlock($$anchor, $$props) {
 }
 // workbook/Workbook.svelte
 var root = /* @__PURE__ */ from_html(`<div class="card preset-tonal-error p-3"> </div>`);
-var root_1 = /* @__PURE__ */ from_html(`<li> </li>`);
-var root_2 = /* @__PURE__ */ from_html(`<div class="card preset-tonal-warning mb-4 p-3"><p class="font-semibold">This workbook has problems:</p> <ul class="mt-1 list-disc pl-5"></ul></div>`);
-var root_3 = /* @__PURE__ */ from_html(`<div class="contents"></div>`);
-var root_4 = /* @__PURE__ */ from_html(`<!> <div class="markdown"></div>`, 1);
-var root_5 = /* @__PURE__ */ from_html(`<div class="scroller svelte-1pkf3dj"><div class="workbook svelte-1pkf3dj"><!></div></div>`);
+var root_1 = /* @__PURE__ */ from_html(`<div class="card preset-tonal-warning mb-4 p-3">This workbook has unsaved changes in an editor. Save or discard them to run steps, tick boxes or send
+            messages.</div>`);
+var root_2 = /* @__PURE__ */ from_html(`<li> </li>`);
+var root_3 = /* @__PURE__ */ from_html(`<div class="card preset-tonal-warning mb-4 p-3"><p class="font-semibold">This workbook has problems:</p> <ul class="mt-1 list-disc pl-5"></ul></div>`);
+var root_4 = /* @__PURE__ */ from_html(`<div class="contents"></div>`);
+var root_5 = /* @__PURE__ */ from_html(`<!> <!> <div class="markdown"></div>`, 1);
+var root_6 = /* @__PURE__ */ from_html(`<div class="mb-1 flex items-center gap-2 text-sm"><span>About step <code> </code></span> <button type="button" class="btn btn-sm preset-tonal-surface">Not about a step</button></div>`);
+var root_7 = /* @__PURE__ */ from_html(`<div class="view svelte-1pkf3dj"><div class="scroller svelte-1pkf3dj"><div class="workbook svelte-1pkf3dj"><!></div></div> <div class="composer border-surface-200-800 border-t px-6 py-3"><!> <div class="flex items-end gap-2"><div class="min-w-0 flex-1"><!></div> <button type="button" class="btn preset-filled-primary-500">Send</button></div> <p class="text-surface-700-300 mt-1 text-xs"> </p></div></div>`);
 function Workbook($$anchor, $$props) {
 	push($$props, true);
 	let scrollTop = prop($$props, "scrollTop", 3, 0);
 	let model = /* @__PURE__ */ state(null);
-	const open = new SvelteSet();
+	const opened = new SvelteMap();
+	let askStep = /* @__PURE__ */ state(null);
 	let scroller;
+	let content = /* @__PURE__ */ state(null);
 	let drawn = false;
+	const sendKeys = /Mac/.test(navigator.platform) ? "⌘↩" : "Ctrl+Enter";
 	user_effect(() => $$props.service.watchWorkbook($$props.filePath, (next) => {
 		const atBottom = drawn && scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 40;
 		const top = drawn ? scroller.scrollTop : scrollTop();
@@ -4918,10 +5955,41 @@ function Workbook($$anchor, $$props) {
 		drawn = true;
 		$$props.setTitle(next.title);
 	}));
+	user_effect(() => {
+		const current = get(model);
+		tick().then(() => {
+			if (!current || current !== get(model) || !get(content)) return;
+			const boxes = Array.from(get(content).querySelectorAll("input[type=\"checkbox\"]"));
+			const live = boxes.length === current.tasks.length && !current.locked;
+			boxes.forEach((box, i) => {
+				box.disabled = !live;
+				box.onclick = live ? (e) => {
+					e.preventDefault();
+					$$props.service.toggleTask($$props.filePath, i, current.tasks[i]);
+				} : null;
+			});
+		});
+	});
+	user_effect(() => {
+		const sub = $$props.composer.onSubmit(send);
+		return () => sub.dispose();
+	});
 	function serialize() {
 		return { scrollTop: scroller?.scrollTop ?? 0 };
 	}
-	const toggle = (key, isOpen) => isOpen ? open.add(key) : open.delete(key);
+	const isOpen = (key, byDefault) => opened.has(key) ? opened.get(key) : byDefault;
+	const setOpen = (key, open) => opened.set(key, open);
+	function ask(stepId) {
+		set(askStep, stepId, true);
+		$$props.composer.focus();
+	}
+	function send() {
+		if (get(model)?.locked) return;
+		if ($$props.service.sendMessage($$props.filePath, $$props.composer.getText(), get(askStep))) {
+			$$props.composer.clear();
+			set(askStep, null);
+		}
+	}
 	const linkIn = (e) => e.composedPath().find((n) => n.tagName === "A");
 	function onclick(e) {
 		const a = linkIn(e);
@@ -4932,96 +6000,147 @@ function Workbook($$anchor, $$props) {
 	function refuseLink(e) {
 		if (linkIn(e)) e.preventDefault();
 	}
-	function markdown(node, nodes) {
-		node.replaceChildren(...nodes);
-		return { update: (next) => node.replaceChildren(...next) };
-	}
 	var $$exports = { serialize };
-	var div = root_5();
+	var div = root_7();
 	var div_1 = child(div);
-	var node_1 = child(div_1);
+	var div_2 = child(div_1);
+	var node = child(div_2);
 	var consequent = ($$anchor) => {
-		var div_2 = root();
-		var text = only_child(div_2, true);
+		var div_3 = root();
+		var text = only_child(div_3, true);
 		template_effect(() => set_text(text, get(model).error));
-		append($$anchor, div_2);
+		append($$anchor, div_3);
 	};
-	var consequent_5 = ($$anchor) => {
-		var fragment = root_4();
-		var node_2 = first_child(fragment);
+	var consequent_8 = ($$anchor) => {
+		var fragment = root_5();
+		var node_1 = first_child(fragment);
 		var consequent_1 = ($$anchor) => {
-			var div_3 = root_2();
-			var ul = sibling(child(div_3), 2);
+			append($$anchor, root_1());
+		};
+		if_block(node_1, ($$render) => {
+			if (get(model).locked) $$render(consequent_1);
+		});
+		var node_2 = sibling(node_1, 2);
+		var consequent_2 = ($$anchor) => {
+			var div_5 = root_3();
+			var ul = sibling(child(div_5), 2);
 			each(ul, 21, () => get(model).warnings, index, ($$anchor, warning) => {
-				var li = root_1();
+				var li = root_2();
 				var text_1 = only_child(li, true);
 				template_effect(() => set_text(text_1, get(warning)));
 				append($$anchor, li);
 			});
 			reset(ul);
-			reset(div_3);
-			append($$anchor, div_3);
+			reset(div_5);
+			append($$anchor, div_5);
 		};
 		if_block(node_2, ($$render) => {
-			if (get(model).warnings.length) $$render(consequent_1);
+			if (get(model).warnings.length) $$render(consequent_2);
 		});
-		var div_4 = sibling(node_2, 2);
-		each(div_4, 21, () => get(model).segments, (segment) => segment.key, ($$anchor, segment) => {
+		var div_6 = sibling(node_2, 2);
+		each(div_6, 21, () => get(model).segments, (segment) => segment.key, ($$anchor, segment) => {
 			var fragment_1 = comment();
 			var node_3 = first_child(fragment_1);
-			var consequent_2 = ($$anchor) => {
-				var div_5 = root_3();
-				action(div_5, ($$node, $$action_arg) => markdown?.($$node, $$action_arg), () => get(segment).nodes);
-				append($$anchor, div_5);
-			};
 			var consequent_3 = ($$anchor) => {
-				RunCard($$anchor, {
-					get run() {
-						return get(segment).block;
-					},
-					get open() {
-						return open;
-					},
-					onToggle: toggle
-				});
+				var div_7 = root_4();
+				action(div_7, ($$node, $$action_arg) => attachNodes?.($$node, $$action_arg), () => get(segment).nodes);
+				append($$anchor, div_7);
 			};
 			var consequent_4 = ($$anchor) => {
-				FileView($$anchor, {
-					get file() {
-						return get(segment).block;
-					},
-					get open() {
-						return open;
-					},
-					onToggle: toggle
-				});
-			};
-			var alternate = ($$anchor) => {
 				UnverifiedBlock($$anchor, { get block() {
 					return get(segment).block;
 				} });
 			};
+			var consequent_5 = ($$anchor) => {
+				RunCard($$anchor, {
+					get run() {
+						return get(segment).block;
+					},
+					isOpen,
+					setOpen,
+					onRun: (id) => $$props.service.runStep($$props.filePath, id),
+					onAsk: ask
+				});
+			};
+			var consequent_6 = ($$anchor) => {
+				FileView($$anchor, {
+					get file() {
+						return get(segment).block;
+					},
+					isOpen,
+					setOpen
+				});
+			};
+			var consequent_7 = ($$anchor) => {
+				OutputBlock($$anchor, { get output() {
+					return get(segment).block;
+				} });
+			};
+			var alternate = ($$anchor) => {
+				ConversationEntry($$anchor, {
+					get entry() {
+						return get(segment).block;
+					},
+					isOpen,
+					setOpen
+				});
+			};
 			if_block(node_3, ($$render) => {
-				if (get(segment).kind === "markdown") $$render(consequent_2);
-				else if (get(segment).block.kind === "run") $$render(consequent_3, 1);
-				else if (get(segment).block.kind === "file") $$render(consequent_4, 2);
+				if (get(segment).kind === "markdown") $$render(consequent_3);
+				else if (get(segment).block.label) $$render(consequent_4, 1);
+				else if (get(segment).block.kind === "run") $$render(consequent_5, 2);
+				else if (get(segment).block.kind === "file") $$render(consequent_6, 3);
+				else if (get(segment).block.kind === "output") $$render(consequent_7, 4);
 				else $$render(alternate, -1);
 			});
 			append($$anchor, fragment_1);
 		});
-		reset(div_4);
+		reset(div_6);
+		bind_this(div_6, ($$value) => set(content, $$value), () => get(content));
 		append($$anchor, fragment);
 	};
-	if_block(node_1, ($$render) => {
+	if_block(node, ($$render) => {
 		if (get(model)?.error) $$render(consequent);
-		else if (get(model)) $$render(consequent_5, 1);
+		else if (get(model)) $$render(consequent_8, 1);
 	});
+	reset(div_2);
 	reset(div_1);
+	bind_this(div_1, ($$value) => scroller = $$value, () => scroller);
+	var div_8 = sibling(div_1, 2);
+	var node_4 = child(div_8);
+	var consequent_9 = ($$anchor) => {
+		var div_9 = root_6();
+		var span = child(div_9);
+		var text_2 = only_child(sibling(child(span)), true);
+		reset(span);
+		var button = sibling(span, 2);
+		reset(div_9);
+		template_effect(() => set_text(text_2, get(askStep)));
+		delegated("click", button, () => set(askStep, null));
+		append($$anchor, div_9);
+	};
+	if_block(node_4, ($$render) => {
+		if (get(askStep)) $$render(consequent_9);
+	});
+	var div_10 = sibling(node_4, 2);
+	var div_11 = child(div_10);
+	element(child(div_11), () => "slot", false, ($$element, $$anchor) => {
+		attribute_effect($$element, () => ({ name: "composer" }));
+	});
+	reset(div_11);
+	var button_1 = sibling(div_11, 2);
+	reset(div_10);
+	var text_3 = only_child(sibling(div_10, 2));
+	reset(div_8);
 	reset(div);
-	bind_this(div, ($$value) => scroller = $$value, () => scroller);
-	delegated("click", div_1, onclick);
-	event("auxclick", div_1, refuseLink);
-	event("dragstart", div_1, refuseLink);
+	template_effect(() => {
+		button_1.disabled = get(model)?.locked;
+		set_text(text_3, `${sendKeys} sends. Your LLM reads the workbook and replies in it.`);
+	});
+	delegated("click", div_2, onclick);
+	event("auxclick", div_2, refuseLink);
+	event("dragstart", div_2, refuseLink);
+	delegated("click", button_1, send);
 	append($$anchor, div);
 	return pop($$exports);
 }
@@ -5029,17 +6148,19 @@ delegate(["click"]);
 // workbook/main.js
 /**
 * The pane a `*.workbook.md` opens in. `saved` is what the pane last saved (its file and scroll);
-* `service` is lib/workbook-service.js, which does the work that needs Node or Pulsar; `css` is the
-* built stylesheet; `deserializer` is the name Pulsar restores the pane by.
+* `service` is lib/workbook-service.js, which does the work that needs Node or Pulsar; `composer`
+* is the message box it made (a Pulsar text editor, slotted in); `css` is the built stylesheet;
+* `deserializer` is the name Pulsar restores the pane by.
 */
-function workbookPane(saved, { service, css, deserializer }) {
+function workbookPane(saved, { service, composer, css, deserializer }) {
 	const { filePath, scrollTop = 0 } = saved;
 	return new SveltePane({
 		component: Workbook,
 		props: {
 			filePath,
 			scrollTop,
-			service
+			service,
+			composer
 		},
 		css,
 		className: "tranquil-workbook",
@@ -5051,7 +6172,9 @@ function workbookPane(saved, { service, css, deserializer }) {
 			deserializer,
 			filePath,
 			...state
-		})
+		}),
+		slots: { composer: composer.element },
+		onDestroy: composer.destroy
 	});
 }
 exports.workbookPane = workbookPane;

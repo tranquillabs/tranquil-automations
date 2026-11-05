@@ -7,4 +7,14 @@
   display: block;
   height: 100%;
   background: @base-background-color;
+
+  // The message box: a Pulsar text editor, slotted into the view from outside its shadow root, so
+  // it takes the app's input styles.
+  .tranquil-workbook-composer atom-text-editor {
+    min-height: 2.6em;
+    padding: 4px 8px;
+    border: 1px solid @input-border-color;
+    border-radius: @component-border-radius;
+    background: @input-background-color;
+  }
 }

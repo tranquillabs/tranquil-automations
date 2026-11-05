@@ -4,14 +4,15 @@ import Workbook from "./Workbook.svelte";
 
 /**
  * The pane a `*.workbook.md` opens in. `saved` is what the pane last saved (its file and scroll);
- * `service` is lib/workbook-service.js, which does the work that needs Node or Pulsar; `css` is the
- * built stylesheet; `deserializer` is the name Pulsar restores the pane by.
+ * `service` is lib/workbook-service.js, which does the work that needs Node or Pulsar; `composer`
+ * is the message box it made (a Pulsar text editor, slotted in); `css` is the built stylesheet;
+ * `deserializer` is the name Pulsar restores the pane by.
  */
-export function workbookPane(saved, { service, css, deserializer }) {
+export function workbookPane(saved, { service, composer, css, deserializer }) {
   const { filePath, scrollTop = 0 } = saved;
   return new SveltePane({
     component: Workbook,
-    props: { filePath, scrollTop, service },
+    props: { filePath, scrollTop, service, composer },
     css,
     className: "tranquil-workbook",
     uri: filePath,
@@ -19,5 +20,7 @@ export function workbookPane(saved, { service, css, deserializer }) {
     iconName: "checklist",
     allowedLocations: ["center", "right"],
     serialize: (state) => ({ deserializer, filePath, ...state }),
+    slots: { composer: composer.element },
+    onDestroy: composer.destroy,
   });
 }

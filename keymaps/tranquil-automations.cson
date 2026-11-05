@@ -7,3 +7,10 @@
 '.platform-win32 atom-workspace, .platform-linux atom-workspace':
   'ctrl-alt-w': 'tranquil-automations:close-all-center-tabs'
   'ctrl-shift-u': 'tranquil-automations:toggle-runs-panel'
+
+# The workbook view's message box (ADR-0030): send the message.
+'.platform-darwin .tranquil-workbook-composer atom-text-editor':
+  'cmd-enter': 'tranquil-automations:send-workbook-message'
+
+'.platform-win32 .tranquil-workbook-composer atom-text-editor, .platform-linux .tranquil-workbook-composer atom-text-editor':
+  'ctrl-enter': 'tranquil-automations:send-workbook-message'

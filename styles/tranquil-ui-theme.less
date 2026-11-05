@@ -1,0 +1,87 @@
+// The Skeleton theme for Tranquil's own UI (ui/common): every color Skeleton uses, taken from the
+// active UI theme, so anything built with it looks like the rest of the app and follows a theme
+// change. Set on the shadow host (.tranquil-ui, from ui/common/mount.js); custom properties
+// inherit into the shadow tree, and rules from outside a shadow root beat its own :host rules, so
+// these replace Skeleton's defaults. It lives here with ui/common until that moves to its own repo.
+@import "ui-variables";
+
+// The two ends of every scale. Skeleton's 50 is the lightest shade and 950 the darkest, in light
+// and dark themes alike.
+@tq-light: if((luminance(@base-background-color) >= 50%), @base-background-color, @text-color-highlight);
+@tq-dark: if((luminance(@base-background-color) >= 50%), @text-color-highlight, @base-background-color);
+
+// One shade, and the text color that reads on it.
+.tq-shade(@name, @shade, @color) {
+  @on: contrast(@color, @tq-dark, @tq-light);
+  --color-@{name}-@{shade}: @color;
+  --color-@{name}-contrast-@{shade}: @on;
+}
+
+// A palette around one color: lighter toward the light end, darker toward the dark end.
+.tq-palette(@name, @base) {
+  @c50: mix(@base, @tq-light, 10%);
+  @c950: mix(@base, @tq-dark, 10%);
+  .tq-shade(@name, 50, @c50);
+  .tq-shade(@name, 100, mix(@base, @tq-light, 20%));
+  .tq-shade(@name, 200, mix(@base, @tq-light, 40%));
+  .tq-shade(@name, 300, mix(@base, @tq-light, 60%));
+  .tq-shade(@name, 400, mix(@base, @tq-light, 80%));
+  .tq-shade(@name, 500, @base);
+  .tq-shade(@name, 600, mix(@base, @tq-dark, 80%));
+  .tq-shade(@name, 700, mix(@base, @tq-dark, 60%));
+  .tq-shade(@name, 800, mix(@base, @tq-dark, 40%));
+  .tq-shade(@name, 900, mix(@base, @tq-dark, 20%));
+  .tq-shade(@name, 950, @c950);
+  --color-@{name}-contrast-dark: @c950;
+  --color-@{name}-contrast-light: @c50;
+}
+
+.tranquil-ui {
+  color-scheme: if((luminance(@base-background-color) < 50%), dark, light);
+
+  // Neutral surfaces run from the theme's lightest color to its darkest.
+  @s50: mix(@tq-dark, @tq-light, 5%);
+  @s950: mix(@tq-dark, @tq-light, 95%);
+  .tq-shade(surface, 50, @s50);
+  .tq-shade(surface, 100, mix(@tq-dark, @tq-light, 10%));
+  .tq-shade(surface, 200, mix(@tq-dark, @tq-light, 20%));
+  .tq-shade(surface, 300, mix(@tq-dark, @tq-light, 30%));
+  .tq-shade(surface, 400, mix(@tq-dark, @tq-light, 40%));
+  .tq-shade(surface, 500, mix(@tq-dark, @tq-light, 50%));
+  .tq-shade(surface, 600, mix(@tq-dark, @tq-light, 60%));
+  .tq-shade(surface, 700, mix(@tq-dark, @tq-light, 70%));
+  .tq-shade(surface, 800, mix(@tq-dark, @tq-light, 80%));
+  .tq-shade(surface, 900, mix(@tq-dark, @tq-light, 90%));
+  .tq-shade(surface, 950, @s950);
+  --color-surface-contrast-dark: @s950;
+  --color-surface-contrast-light: @s50;
+
+  // The theme's accent is primary; secondary and tertiary use it too, so any use stays on theme.
+  .tq-palette(primary, @background-color-info);
+  .tq-palette(secondary, @background-color-info);
+  .tq-palette(tertiary, @background-color-info);
+  .tq-palette(success, @background-color-success);
+  .tq-palette(warning, @background-color-warning);
+  .tq-palette(error, @background-color-error);
+
+  @accent-on: contrast(@background-color-info, @tq-dark, @tq-light);
+  --color-brand-light: @background-color-info;
+  --color-brand-dark: @background-color-info;
+  --color-brand-contrast-light: @accent-on;
+  --color-brand-contrast-dark: @accent-on;
+  --color-root-bg-light: @base-background-color;
+  --color-root-bg-dark: @base-background-color;
+
+  // Skeleton picks the light or dark value by color-scheme; the theme has one of each.
+  --typo-base--font-family: @font-family;
+  --typo-base--font-size: @font-size;
+  --typo-base--line-height: 1.5;
+  --typo-base--color-light: @text-color;
+  --typo-base--color-dark: @text-color;
+  --typo-heading--color-light: @text-color-highlight;
+  --typo-heading--color-dark: @text-color-highlight;
+  --typo-anchor--color-light: @text-color-info;
+  --typo-anchor--color-dark: @text-color-info;
+  --radius-base: @component-border-radius;
+  --radius-container: @component-border-radius;
+}

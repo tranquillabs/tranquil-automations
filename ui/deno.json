@@ -1,0 +1,7 @@
+{
+  "nodeModulesDir": "manual",
+  "tasks": {
+    "build": "env -i PATH=\"$PATH\" HOME=\"$HOME\" TMPDIR=\"$TMPDIR\" deno run --no-prompt --cached-only --allow-read=.,../dist --allow-write=../dist,node_modules/.vite --allow-env --allow-sys=homedir,uid --allow-ffi=node_modules node_modules/vite/bin/vite.js build --configLoader native && deno run --no-prompt --allow-read=../dist/workbook-ui.css --allow-write=../dist/workbook-ui.css common/host-css.ts ../dist/workbook-ui.css"
+  },
+  "//build": "Vite enumerates the whole environment, which Deno allows only with an unscoped --allow-env, so the build runs with an emptied one (env -i): the tools see PATH, HOME and TMPDIR and nothing else. They have no network, and write only dist/ and Vite's cache. Run `deno install` here first, which downloads the packages in package.json."
+}

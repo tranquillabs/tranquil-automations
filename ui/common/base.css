@@ -1,0 +1,19 @@
+/* The stylesheet for Tranquil's own UI, adopted into a shadow root (mount.js), so none of it
+   reaches the rest of the window and the window's styles don't reach in. Tailwind without its
+   Preflight reset, Skeleton's design system, and Markdown in Skeleton's type styles. The build
+   points :root, html and body at :host (host-css.ts). Colors come from the app's UI theme, set
+   on the shadow host (tranquil-automations styles/tranquil-ui-theme.less). */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "@skeletonlabs/skeleton";
+@import "./markdown.css";
+
+/* Dark mode follows the app's UI theme (data-mode on the mount's root), not the operating system. */
+@custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
+
+/* The mount fills its pane, so a component can scroll its own content. */
+:host { display: block; }
+.tranquil-ui-root { height: 100%; }
+
+@source "../";

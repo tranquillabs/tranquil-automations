@@ -1,0 +1,19 @@
+/* Rendered Markdown (lib/safe-markdown.js) in Skeleton's type styles. The app's own Markdown
+   styles don't reach into a shadow root, so a `.markdown` container gets these instead. */
+@layer components {
+  .markdown h1 { @apply h1; }
+  .markdown h2 { @apply h2; }
+  .markdown h3 { @apply h3; }
+  .markdown h4 { @apply h4; }
+  .markdown h5 { @apply h5; }
+  .markdown h6 { @apply h6; }
+  .markdown :is(h1, h2, h3, h4, h5, h6) { margin-block: 1.2em 0.5em; }
+  .markdown p, .markdown ul, .markdown ol, .markdown blockquote, .markdown table { margin-block: 0.6em; }
+  .markdown a { @apply anchor; }
+  .markdown blockquote { @apply blockquote; }
+  .markdown pre { @apply pre; white-space: pre-wrap; word-break: break-word; }
+  .markdown kbd { @apply kbd; }
+  .markdown hr { @apply hr; }
+  .markdown table { @apply table; }
+  .markdown li.task-list-item { list-style: none; }
+}

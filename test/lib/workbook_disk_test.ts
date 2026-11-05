@@ -69,3 +69,37 @@ Deno.test("readCapped reads, cuts at the cap, and reports a missing file", () =>
   const missing = disk.readCapped(`${root}/nope.txt`);
   assert(!missing.ok && missing.missing);
 });
+
+Deno.test("writeDoc applies an edit through a temporary file, and leaves nothing behind", () => {
+  const { doc } = project();
+  const dir = doc.slice(0, doc.lastIndexOf("/"));
+  Deno.chmodSync(doc, 0o640);
+  assertEquals(disk.writeDoc(doc, (t) => t + "more\n"), { ok: true, changed: true });
+  assertEquals(Deno.readTextFileSync(doc), "# A\nmore\n");
+  assertEquals(Deno.statSync(doc).mode! & 0o777, 0o640, "the file keeps its permissions");
+  assertEquals([...Deno.readDirSync(dir)].map((e) => e.name), ["a.workbook.md"], "no temporary file left");
+  assertEquals(disk.writeDoc(doc, () => null), { ok: true, changed: false });
+});
+
+Deno.test("writeDoc reads again when someone else wrote the file during an edit", () => {
+  const { doc } = project();
+  let calls = 0;
+  const result = disk.writeDoc(doc, (t) => {
+    calls++;
+    if (calls === 1) Deno.writeTextFileSync(doc, "# B\n"); // another writer, mid-edit
+    return t + "mine\n";
+  });
+  assertEquals(result, { ok: true, changed: true });
+  assertEquals(calls, 2);
+  assertEquals(Deno.readTextFileSync(doc), "# B\nmine\n", "the edit applies to what's there now");
+});
+
+Deno.test("writeDoc writes a symlinked workbook through to its file", async () => {
+  const { root, doc } = project();
+  const link = `${root}/link.workbook.md`;
+  const made = await new Deno.Command("ln", { args: ["-s", doc, link] }).output();
+  assert(made.success);
+  assertEquals(disk.writeDoc(link, (t) => t + "via link\n"), { ok: true, changed: true });
+  assert(Deno.lstatSync(link).isSymlink, "the link is still a link");
+  assertEquals(Deno.readTextFileSync(doc), "# A\nvia link\n");
+});

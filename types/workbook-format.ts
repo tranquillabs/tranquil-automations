@@ -73,4 +73,14 @@ export interface WorkbookFormatModule {
   parseFrontMatter(lines: string[]): { data: FrontMatter; warnings: string[] };
   renderSource(text: string, doc: Doc, nonce: string): string;
   placeholder(nonce: string, n: number): string;
+  /** An output cut to 16,000 characters (its first 4,000 and last 12,000), control characters dropped. */
+  capOutput(text: string): string;
+  /** A block as text, fenced longer than any backtick run in `body`. Attribute values hold no whitespace. */
+  blockText(kind: BlockKind, id: string | undefined, attrs: Record<string, string | undefined>, body: string): string;
+  /** The step's output replaced, or put just below the step; null when there's no such step. */
+  setOutput(text: string, id: string, block: string): string | null;
+  /** Task `index` flipped; null when it's no longer as `wasChecked` says. */
+  toggleTask(text: string, index: number, wasChecked: boolean): string | null;
+  /** A message at the end, or after a step's output and the thread already beside it. */
+  insertMessage(text: string, block: string, stepId?: string): string;
 }

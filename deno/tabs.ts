@@ -8,7 +8,7 @@ import { CdpConnection, CdpError, listTargets } from "./cdp.ts";
 import { hostCall, requireGrant } from "./rpc.ts";
 import { requireSite } from "./guard.ts";
 import { logAction } from "./log.ts";
-import { hostOf } from "./handle.ts";
+import { hostOf, locate } from "./handle.ts";
 
 /** Log a tab-level action (navigation, opening, closing) like the page verbs do. */
 async function logged<T>(verb: string, url: string, act: () => Promise<T>): Promise<T> {
@@ -131,7 +131,9 @@ export class Tab extends PageHandle implements AsyncDisposable {
 
   async title(): Promise<string> {
     requireGrant("tabs", "tab.title()");
-    return await (await this.connection()).evaluate<string>("document.title");
+    const conn = await this.connection();
+    requireSite((await locate(conn)).address, "tab.title()");
+    return await conn.evaluate<string>("document.title");
   }
 
   /** Navigate this tab. The single-tab sequential crawl is a goto loop over URLs. */
@@ -160,7 +162,7 @@ export class Tab extends PageHandle implements AsyncDisposable {
    */
   async screenshot(): Promise<Uint8Array> {
     requireGrant("tabs", "tab.screenshot()");
-    requireSite(await this.url, "screenshot");
+    requireSite((await locate(await this.connection())).address, "screenshot");
     const b64: string = await hostCall((h) => h.tabs.screenshot(this.#descriptor.tabId), { capability: "tabs", grant: "tabs" });
     return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
   }
@@ -236,14 +238,15 @@ export class Frame extends PageHandle {
 
 export const tabs = {
   /**
-   * The tab the user is looking at (or most recently was). Opens a tab on the browser's start
-   * page when none is open, so a script does not have to guard for it.
+   * The tab the user is looking at (or most recently was). It never opens one: with no browser
+   * tab in front since the window loaded, it fails, and a script that goes to a known site
+   * opens it with `tabs.open(url)` instead.
    */
   async active(): Promise<Tab> {
     return new Tab(await hostCall((h) => h.tabs.active(), { capability: "tabs", grant: "tabs" }));
   },
 
-  /** Find an open tab by exact URL or RegExp. */
+  /** Find an open web tab (http or https) by exact URL or RegExp. */
   async find(query: string | RegExp): Promise<Tab> {
     const q = typeof query === "string" ? query : { regex: query.source, flags: query.flags };
     return new Tab(await hostCall((h) => h.tabs.find(q), { capability: "tabs", grant: "tabs" }));

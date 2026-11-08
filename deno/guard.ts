@@ -36,17 +36,27 @@ export function submitNeeds(): "the submit permission" | "a yes from ui.confirm"
 
 export const canSubmit = () => submitNeeds() === null;
 
-/** Whether a page at `url` is inside the declared sites. No `sites=` means any site; non-web pages (the start page) always pass. */
+/** `url` parsed, when it is a web page's (http or https); null for anything else. */
+function webURL(url: string): URL | null {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Whether a script may act on a page at `url`: only a web page (http or https), and with `sites=`,
+ * only on those sites. No `sites=` means any web site. The browser also shows local files and its
+ * own pages (the start page, the history page), which are never a script's: a `file:` page would
+ * let it read files its `read=` grant doesn't cover.
+ */
 export function siteAllowed(url: string): boolean {
+  const parsed = webURL(url);
+  if (!parsed) return false;
   const sites = allowedSites();
   if (!sites.length) return true;
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return false;
-  }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return true;
   const host = parsed.hostname.toLowerCase();
   return sites.some((p) => {
     const pattern = p.toLowerCase();
@@ -54,15 +64,28 @@ export function siteAllowed(url: string): boolean {
   });
 }
 
+/**
+ * The address a document is checked by: its URL when that is a web page's, otherwise its origin.
+ * An about:blank or about:srcdoc frame, or a blob: document, belongs to the web page that made it,
+ * and its origin names that page; a local file's origin is file://, and the start page's too.
+ */
+export function pageAddress(href: string, origin: string): string {
+  return webURL(href) ? href : origin;
+}
+
 export function requireSite(url: string, what: string): void {
   if (siteAllowed(url)) return;
-  let host = url;
-  try {
-    host = new URL(url).hostname;
-  } catch { /* keep the raw string */ }
+  const parsed = webURL(url);
+  if (!parsed) {
+    throw new FieldError(
+      "not_permitted",
+      `${what}: a script may act only on web pages (http and https), not on local files or the ` +
+        `browser's own pages, such as its start page.`,
+    );
+  }
   throw new FieldError(
     "not_permitted",
-    `${what}: this script may act only on ${allowedSites().join(", ")}, and the page is on ${host}. ` +
+    `${what}: this script may act only on ${allowedSites().join(", ")}, and the page is on ${parsed.hostname}. ` +
       `If it is meant to work there, add it to "@permissions sites=…".`,
   );
 }

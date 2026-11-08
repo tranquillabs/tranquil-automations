@@ -18,7 +18,9 @@ export function mountInShadow(host, Component, props, cssText) {
     component: mount(Component, { target: root, props }),
     /** Marks dark or light from the host's color-scheme, for Tailwind's `dark:` variant. */
     syncMode() {
-      if (host.isConnected) root.dataset.mode = getComputedStyle(host).colorScheme.includes("dark") ? "dark" : "light";
+      if (host.isConnected) {
+        root.dataset.mode = getComputedStyle(host).colorScheme.includes("dark") ? "dark" : "light";
+      }
     },
     destroy: () => unmount(ui.component),
   };

@@ -9,7 +9,7 @@
     success: "preset-tonal-success",
     error: "preset-tonal-error",
     warning: "preset-tonal-warning",
-    surface: "preset-tonal-surface",
+    surface: "preset-filled-surface-200-800",
   };
 </script>
 

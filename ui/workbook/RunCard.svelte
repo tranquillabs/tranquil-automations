@@ -1,40 +1,46 @@
 <script>
-  // A step: its script, what the script may do, its source, Run, and Ask about this step. The
-  // source starts open when the step hasn't run yet or its script changed since it ran.
-  let { run, isOpen, setOpen, onRun, onAsk } = $props();
+  // A step: its script, what the script may do, its source, Run, and Ask about this step. What it
+  // draws follows the step's state (StepState in types/service.ts): a refused step says why and
+  // nothing else, and the source starts open when the step is new or its script changed since it
+  // ran. Run is offered when the run machine allows it from the step's phase (run-machine.ts) and
+  // no editor holds unsaved changes to the workbook.
+  import { can } from "./run-machine.ts";
+
+  let { run, locked, isOpen, setOpen, onRun, onAsk } = $props();
+  const state = $derived(run.state);
+  const phase = $derived(state.kind === "running" ? state.phase : "idle");
   const sourceKey = $derived(`${run.key}:source`);
+  const RUN_LABELS = { idle: "Run", starting: "Starting…", running: "Running…", writing: "Running…" };
 </script>
 
-<div class="card my-3 border p-3 {run.refused ? 'preset-tonal-error border-error-500' : 'border-surface-200-800'}">
+<div class="card my-3 border p-3 {state.kind === 'refused' ? 'preset-tonal-error border-error-500' : 'border-surface-200-800'}">
   <div class="flex flex-wrap items-center gap-2">
-    <code>{run.path ?? "(no script)"}</code>
-    {#if run.grants}
-      <span class="badge {run.grants.error ? 'preset-tonal-error' : 'preset-tonal-surface'}" title={run.grants.detail}>
-        {run.grants.summary}
+    <span class="font-mono text-sm">{run.path ?? "(no script)"}</span>
+    {#if state.kind !== "refused"}
+      <span class="badge {state.script.grants.error ? 'preset-tonal-error' : 'preset-filled-surface-200-800'}" title={state.script.grants.detail}>
+        {state.script.grants.summary}
       </span>
-    {/if}
-    {#if run.changed}
-      <span class="badge preset-tonal-warning">script changed since this run</span>
-    {/if}
-    {#if !run.refused}
+      {#if state.kind === "changed"}
+        <span class="badge preset-tonal-warning">script changed since this run</span>
+      {/if}
       <span class="ml-auto flex gap-2">
         <button type="button" class="btn btn-sm preset-tonal-surface" onclick={() => onAsk(run.id)}>Ask about this step</button>
-        <button type="button" class="btn btn-sm preset-filled-primary-500" disabled={!run.canRun} onclick={() => onRun(run.id)}>
-          {run.running ? "Running…" : "Run"}
+        <button type="button" class="btn btn-sm preset-filled-primary-500" disabled={locked || !can(phase, "run")} onclick={() => onRun(run.id)}>
+          {RUN_LABELS[phase]}
         </button>
       </span>
     {/if}
   </div>
-  {#if run.refused}
-    <p class="mt-2">{run.refused}</p>
+  {#if state.kind === "refused"}
+    <p class="mt-2">{state.reason}</p>
   {:else}
     <details
       class="mt-2"
-      open={isOpen(sourceKey, !run.hasRun || run.changed)}
+      open={isOpen(sourceKey, state.kind === "new" || state.kind === "changed")}
       ontoggle={(e) => setOpen(sourceKey, e.currentTarget.open)}
     >
       <summary class="text-surface-700-300 cursor-pointer">source</summary>
-      <pre><code>{run.source}</code></pre>
+      <pre><code>{state.script.source}</code></pre>
     </details>
   {/if}
 </div>

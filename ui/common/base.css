@@ -13,7 +13,11 @@
 @custom-variant dark (&:where([data-mode="dark"], [data-mode="dark"] *));
 
 /* The mount fills its pane, so a component can scroll its own content. */
-:host { display: block; }
-.tranquil-ui-root { height: 100%; }
+:host {
+  display: block;
+}
+.tranquil-ui-root {
+  height: 100%;
+}
 
 @source "../";

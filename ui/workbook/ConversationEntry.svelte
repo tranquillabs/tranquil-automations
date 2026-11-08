@@ -1,9 +1,10 @@
 <script>
   // One message or reply, as a row that shows its first line and opens to the whole of it. A
-  // message is the person's, signed by Tranquil; a reply is the LLM's, rendered as Markdown.
-  import { attachNodes } from "../common/index.js";
+  // message is the person's, signed by Tranquil, shown as text; a reply is the LLM's, drawn as
+  // Markdown through the shared renderer.
+  import { Markdown } from "../common/index.js";
 
-  let { entry, isOpen, setOpen } = $props();
+  let { entry, isOpen, setOpen, onLink } = $props();
 </script>
 
 <details
@@ -19,6 +20,6 @@
   {#if entry.kind === "message"}
     <p class="mt-1 whitespace-pre-wrap">{entry.body}</p>
   {:else}
-    <div class="mt-1" use:attachNodes={entry.nodes}></div>
+    <div class="mt-1"><Markdown md={entry.body} {onLink} /></div>
   {/if}
 </details>

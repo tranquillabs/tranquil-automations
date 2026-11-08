@@ -31,8 +31,7 @@ function scan(text: string, from: number, stop: (c: string, depth: number) => bo
       const end = text.indexOf("*/", i + 2);
       if (end < 0) return text.length;
       i = end + 1;
-    }
-    else if (stop(c, depth)) return i;
+    } else if (stop(c, depth)) return i;
     else if (c === "{") depth++;
     else if (c === "}") depth--;
   }

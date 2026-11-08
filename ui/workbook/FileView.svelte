@@ -9,7 +9,7 @@
   ontoggle={(e) => setOpen(file.key, e.currentTarget.open)}
 >
   <summary class="cursor-pointer">
-    <code>{file.path ?? "(no path)"}</code>
+    <span class="font-mono text-sm">{file.path ?? "(no path)"}</span>
     <span class="ml-2 text-sm {file.error ? 'text-error-500' : 'text-surface-700-300'}">{file.state}</span>
   </summary>
   {#if file.text !== undefined}

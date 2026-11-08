@@ -15,7 +15,9 @@
     "include": [
       "deno/",
       "test/",
-      "types/"
+      "types/",
+      "ui/common/",
+      "ui/workbook/"
     ],
     "lineWidth": 110
   },
@@ -23,7 +25,9 @@
     "include": [
       "deno/",
       "test/",
-      "types/"
+      "types/",
+      "ui/common/",
+      "ui/workbook/"
     ],
     "rules": {
       "exclude": [

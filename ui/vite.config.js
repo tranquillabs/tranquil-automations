@@ -18,5 +18,7 @@ export default defineConfig({
     emptyOutDir: true,
     minify: false,
     cssCodeSplit: false,
+    // Node's own modules stay `require`s: the window that loads the bundle has Node.
+    rollupOptions: { external: [/^node:/] },
   },
 });

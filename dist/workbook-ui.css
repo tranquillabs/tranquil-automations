@@ -61,7 +61,9 @@
     --color-secondary-50: oklch(98.5% 0 0);
     --color-secondary-contrast-light: var(--color-secondary-50);
     --color-tertiary-50: oklch(98.5% 0 0);
+    --color-tertiary-500: oklch(55.6% 0 0);
     --color-tertiary-contrast-light: var(--color-tertiary-50);
+    --color-tertiary-contrast-500: var(--color-tertiary-contrast-light);
     --color-success-50: oklch(98.5% 0 0);
     --color-success-950: oklch(14.5% 0 0);
     --color-success-contrast-light: var(--color-success-50);
@@ -85,6 +87,8 @@
     --color-surface-contrast-dark: var(--color-surface-950);
     --color-surface-contrast-light: var(--color-surface-50);
     --color-surface-contrast-100: var(--color-surface-contrast-dark);
+    --color-surface-contrast-200: var(--color-surface-contrast-dark);
+    --color-surface-contrast-800: var(--color-surface-contrast-light);
     --color-surface-contrast-900: var(--color-surface-contrast-light);
     --color-brand-light: var(--color-primary-500);
     --color-brand-dark: var(--color-primary-500);
@@ -99,6 +103,7 @@
     --color-surface-50-950: light-dark(var(--color-surface-50), var(--color-surface-950));
     --color-surface-100-900: light-dark(var(--color-surface-100), var(--color-surface-900));
     --color-surface-200-800: light-dark(var(--color-surface-200), var(--color-surface-800));
+    --color-surface-contrast-200-800: light-dark(var(--color-surface-contrast-200), var(--color-surface-contrast-800));
     --color-surface-300-700: light-dark(var(--color-surface-300), var(--color-surface-700));
     --color-surface-600-400: light-dark(var(--color-surface-600), var(--color-surface-400));
     --color-surface-700-300: light-dark(var(--color-surface-700), var(--color-surface-300));
@@ -526,6 +531,9 @@ pre code, .ec-line code {
     font-size: var(--text-xs);
     line-height: var(--text-xs--line-height);
   }
+.relative {
+    position: relative;
+  }
 .m-0 {
     margin: 0;
   }
@@ -535,11 +543,75 @@ pre code, .ec-line code {
 .my-3 {
     margin-block: calc(var(--spacing) * 3);
   }
-.mt-1 {
+.label {
+    width: 100%;
+    display: block;
+  }
+.label > * + *, .mt-1 {
     margin-top: var(--spacing);
   }
 .mt-2 {
     margin-top: calc(var(--spacing) * 2);
+  }
+.input {
+    --field-size: var(--text-base);
+    background-color: var(--color-surface-50-950);
+    color: var(--color-surface-950-50);
+    border-radius: var(--radius-base);
+    width: 100%;
+    font-size: var(--field-size);
+    line-height: var(--field-size);
+    padding-block: calc((var(--field-size) - calc(var(--spacing) * .5)) / 2);
+    padding-inline: calc((var(--field-size) - calc(var(--spacing) * .5)) / 2 + var(--spacing));
+    --tw-ring-inset: inset;
+    --tw-ring-color: var(--color-surface-300-700);
+    --tw-ring-shadow: var(--tw-ring-inset, ) 0 0 0 var(--default-ring-width) var(--tw-ring-color, currentColor);
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+    border-width: 0;
+    outline-color: #0000;
+    display: block;
+  }
+.input::placeholder {
+    color: var(--field-placeholder);
+  }
+.input:active, .input:focus, .input:focus-within {
+    --tw-ring-color: var(--color-primary-500);
+  }
+.input[type="file"]::file-selector-button {
+    border-radius: var(--radius-base);
+    background-color: var(--color-surface-950-50);
+    color: var(--color-surface-50-950);
+    transform: translateY(calc(var(--spacing) * -.5));
+    margin-right: calc(var(--spacing) * 2);
+    text-transform: capitalize;
+    font-size: var(--text-xs);
+    height: var(--text-xs--line-height);
+    padding-block: 0;
+    padding-inline: calc(var(--spacing) * 2);
+  }
+.input[type="range"] {
+    accent-color: var(--color-surface-950-50);
+    box-shadow: none;
+    padding-inline: initial;
+  }
+.input[type="color"] {
+    border-radius: var(--radius-base);
+    width: calc(var(--spacing) * 10);
+    height: calc(var(--spacing) * 10);
+    appearance: none;
+    border: none;
+    outline: none;
+    padding: 0;
+  }
+.input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+.input[type="color"]::-webkit-color-swatch {
+    border-radius: var(--radius-base);
+    border: none;
+  }
+.input[type="color"]::-moz-color-swatch {
+    border: none;
   }
 .mb-1 {
     margin-bottom: var(--spacing);
@@ -611,9 +683,6 @@ pre code, .ec-line code {
 .block {
     display: block;
   }
-.contents {
-    display: contents;
-  }
 .flex {
     display: flex;
   }
@@ -669,6 +738,11 @@ pre code, .ec-line code {
     accent-color: light-dark(var(--color-brand-light), var(--color-brand-dark));
     border: 0;
   }
+.placeholder {
+    background-color: var(--color-surface-200-800);
+    border-radius: var(--radius-base);
+    min-height: calc(var(--spacing) * 4);
+  }
 .table-wrap {
     width: 100%;
     overflow: auto;
@@ -696,6 +770,12 @@ pre code, .ec-line code {
   }
 .gap-2 {
     gap: calc(var(--spacing) * 2);
+  }
+.mark {
+    color: var(--color-tertiary-contrast-500);
+    background-color: var(--color-tertiary-500);
+    border-radius: var(--radius-sm);
+    padding-inline: var(--spacing);
   }
 .card {
     border-radius: var(--radius-container);
@@ -749,6 +829,10 @@ pre code, .ec-line code {
     background-color: var(--color-primary-500);
     color: var(--color-primary-contrast-500);
   }
+.preset-filled-surface-200-800 {
+    background-color: var(--color-surface-200-800);
+    color: var(--color-surface-contrast-200-800);
+  }
 .preset-tonal-error {
     background-color: var(--color-error-50-950);
     color: var(--color-error-950-50);
@@ -797,6 +881,9 @@ pre code, .ec-line code {
     vertical-align: sub;
     line-height: 0;
   }
+.font-mono {
+    font-family: var(--font-mono);
+  }
 .text-sm {
     font-size: calc(.875rem * var(--text-scaling));
     line-height: var(--tw-leading, calc(calc(1.25 / .875) * var(--text-scaling)));
@@ -808,6 +895,9 @@ pre code, .ec-line code {
 .font-semibold {
     --tw-font-weight: var(--font-weight-semibold);
     font-weight: var(--font-weight-semibold);
+  }
+.time {
+    font-weight: bold;
   }
 .whitespace-pre-wrap {
     white-space: pre-wrap;

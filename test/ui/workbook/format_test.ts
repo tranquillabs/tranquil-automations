@@ -1,20 +1,17 @@
-// The workbook file format (lib/workbook-format.js, ADR-0030). The module requires nothing, so it
-// is evaluated as CommonJS directly, the way permissions_test.ts loads permissions.js.
+// The workbook file format (ui/workbook/format.ts, ADR-0030): parsing, and the edits Tranquil makes.
 import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@^1";
-import type { BlockKind, WorkbookFormatModule } from "tranquil-automations/types/workbook-format.ts";
-
-// Filled in by evaluating the module; its shape is WorkbookFormatModule.
-const mod = { exports: {} as WorkbookFormatModule };
-new Function(
-  "module",
-  "exports",
-  Deno.readTextFileSync(new URL(import.meta.resolve("tranquil-automations/lib/workbook-format.js"))),
-)(
-  mod,
-  mod.exports,
-);
-const { BLOCK_KINDS, parseDoc, renderSource, placeholder, capOutput, blockText, setOutput, toggleTask, insertMessage } =
-  mod.exports;
+import type { BlockKind } from "tranquil-automations/ui/workbook/types/format.ts";
+import {
+  BLOCK_KINDS,
+  blockText,
+  capOutput,
+  insertMessage,
+  parseDoc,
+  placeholder,
+  renderSource,
+  setOutput,
+  toggleTask,
+} from "tranquil-automations/ui/workbook/format.ts";
 
 const fence = "```";
 
@@ -267,5 +264,9 @@ Deno.test("insertMessage adds at the end, or after a step's output and its threa
     parseDoc(two).blocks.map((b) => (b.kind === "message" ? b.body : b.kind)),
     ["run", "output", "one", "two", "run"],
   );
-  assertEquals(parseDoc(insertMessage(WORKBOOK, msg("x"), "nope")).blocks.at(-1)?.body, "x", "an unknown step means the end");
+  assertEquals(
+    parseDoc(insertMessage(WORKBOOK, msg("x"), "nope")).blocks.at(-1)?.body,
+    "x",
+    "an unknown step means the end",
+  );
 });

@@ -1,14 +1,7 @@
-// Signatures on outputs and messages (lib/workbook-signatures.js, ADR-0030): a signed block checks
-// out, and any change to it, or a signature moved to another block, doesn't. The module needs
-// Node's crypto and fs, so it is loaded through createRequire.
+// Signatures on outputs and messages (ui/workbook/signatures.ts, ADR-0030): a signed block checks
+// out, and any change to it, or a signature moved to another block, doesn't.
 import { assert, assertEquals } from "jsr:@std/assert@^1";
-import { createRequire } from "node:module";
-import type { WorkbookSignaturesModule } from "tranquil-automations/types/workbook-signatures.ts";
-
-const require = createRequire(import.meta.url);
-const sigs: WorkbookSignaturesModule = require(
-  new URL(import.meta.resolve("tranquil-automations/lib/workbook-signatures.js")).pathname,
-);
+import * as sigs from "tranquil-automations/ui/workbook/signatures.ts";
 
 function freshKey() {
   const dir = Deno.makeTempDirSync({ prefix: "workbook-sigs-" });
@@ -43,7 +36,21 @@ Deno.test("a signed block checks out, and any change to it doesn't", () => {
 Deno.test("CRLF in the body signs the same as LF, and another key doesn't verify", () => {
   const key = sigs.loadKey(freshKey().path);
   const sig = sigs.sign(key, "message", undefined, { at: "t" }, "line 1\nline 2");
-  assert(sigs.verify(key, { kind: "message" as const, id: undefined, attrs: { at: "t", sig }, body: "line 1\r\nline 2" }));
+  assert(
+    sigs.verify(key, {
+      kind: "message" as const,
+      id: undefined,
+      attrs: { at: "t", sig },
+      body: "line 1\r\nline 2",
+    }),
+  );
   const other = sigs.loadKey(freshKey().path);
-  assert(!sigs.verify(other, { kind: "message" as const, id: undefined, attrs: { at: "t", sig }, body: "line 1\nline 2" }));
+  assert(
+    !sigs.verify(other, {
+      kind: "message" as const,
+      id: undefined,
+      attrs: { at: "t", sig },
+      body: "line 1\nline 2",
+    }),
+  );
 });

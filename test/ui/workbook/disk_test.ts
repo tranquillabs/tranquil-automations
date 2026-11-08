@@ -1,14 +1,7 @@
-// Workbook disk access (lib/workbook-disk.js, ADR-0030): every path a workbook names stays inside
-// its project, and reads are capped. The module needs Node's fs and path, so it is loaded through
-// createRequire rather than evaluated directly.
+// Workbook disk access (ui/workbook/disk.ts, ADR-0030): every path a workbook names stays inside
+// its project, reads are capped, and writes go through a temporary file and a rename.
 import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@^1";
-import { createRequire } from "node:module";
-import type { WorkbookDiskModule } from "tranquil-automations/types/workbook-disk.ts";
-
-const require = createRequire(import.meta.url);
-const disk: WorkbookDiskModule = require(
-  new URL(import.meta.resolve("tranquil-automations/lib/workbook-disk.js")).pathname,
-);
+import * as disk from "tranquil-automations/ui/workbook/disk.ts";
 
 function project() {
   const root = Deno.makeTempDirSync({ prefix: "workbook-disk-" });

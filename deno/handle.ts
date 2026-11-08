@@ -10,7 +10,7 @@ import type { Page } from "./page.ts";
 import { requireGrant } from "./rpc.ts";
 import type { Capability } from "./grants.ts";
 import { checkingParts } from "./context.ts";
-import { canSubmit, requireSite } from "./guard.ts";
+import { canSubmit, pageAddress, requireSite } from "./guard.ts";
 import { logAction } from "./log.ts";
 import { createFormsRuntime } from "./forms/runtime.ts";
 import * as forms from "./forms/actions.ts";
@@ -54,6 +54,12 @@ export function hostOf(url: string): string {
   } catch {
     return "";
   }
+}
+
+/** Where a document is: its URL, and the address the site check reads (guard.ts pageAddress). */
+export async function locate(conn: CdpConnection): Promise<{ href: string; address: string }> {
+  const [href, origin] = await conn.evaluate<[string, string]>("[location.href, location.origin]");
+  return { href, address: pageAddress(href, origin) };
 }
 
 export abstract class PageHandle {
@@ -129,8 +135,9 @@ export abstract class PageHandle {
     let url = "";
     let outcome = "ok";
     try {
-      url = await this.#evaluate<string>("location.href", []);
-      requireSite(url, `${verb}${target !== undefined ? ` ${describeTarget(target)}` : ""}`);
+      const where = await locate(await this.connection());
+      url = where.href;
+      requireSite(where.address, `${verb}${target !== undefined ? ` ${describeTarget(target)}` : ""}`);
       if (check && checkingParts) {
         outcome = "checked";
         return await check();

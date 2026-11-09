@@ -1,0 +1,19 @@
+{
+  // How the editor checks lib/, the package's plain JavaScript (Pulsar loads it with require):
+  // strictly, against types declared in types/ and pulled in with JSDoc. Not a build: nothing reads
+  // this but the editor. Electron's types come from the app (tranquil-client), which installs it;
+  // this package doesn't.
+  "compilerOptions": {
+    "checkJs": true,
+    "strict": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "module": "commonjs",
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "ESNext.Disposable"],
+    "paths": {
+      "electron": ["../tranquil-client/node_modules/electron/electron.d.ts"]
+    }
+  },
+  "include": ["lib/**/*.js"]
+}

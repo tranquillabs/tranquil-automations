@@ -36,8 +36,12 @@ export function submitNeeds(): "the submit permission" | "a yes from ui.confirm"
 
 export const canSubmit = () => submitNeeds() === null;
 
-/** `url` parsed, when it is a web page's (http or https); null for anything else. */
-function webURL(url: string): URL | null {
+/**
+ * `url` parsed, when it is a web page's (http or https); null for anything else. The SDK's copy of
+ * tranquil-browser's isWebURL (lib/pages.js), held to it by tranquil-test-suite's
+ * lint/browser_contract_test.ts.
+ */
+export function webURL(url: string): URL | null {
   try {
     const parsed = new URL(url);
     return parsed.protocol === "http:" || parsed.protocol === "https:" ? parsed : null;

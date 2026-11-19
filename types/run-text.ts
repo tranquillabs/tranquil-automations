@@ -1,5 +1,6 @@
 // What lib/run-text.js exports. The module is plain JavaScript, so its shapes are declared here,
-// once, for every TypeScript that loads it. Types only.
+// once, for every TypeScript that loads it, and for its own JSDoc. Types only.
+import type { RunState } from "./run-manager.ts";
 
 /** One page action a run recorded, without values (ADR-0026). */
 export interface ActionEntry {
@@ -18,7 +19,8 @@ export interface RunForText {
 }
 
 export interface RunTextModule {
-  STATE_LABELS: Readonly<Record<string, string>>;
+  /** What the Runs panel and a workbook's output call each state: one entry per state. */
+  STATE_LABELS: Readonly<Record<RunState, string>>;
   formatDuration(ms: number): string;
   actionLine(action: ActionEntry): string;
   runText(run: RunForText): string;

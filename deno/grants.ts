@@ -3,6 +3,7 @@
 // grants from here, typed, so a misspelled grant fails `deno check` rather than denying forever.
 // The runner's copy in lib/permissions.js (the renderer loads JavaScript, not TypeScript) is held
 // to this one by test/lib/permissions_test.ts.
+import { runEnv } from "./run-env.ts";
 
 /** Every capability grant, as written in the header. */
 export const CAPABILITIES = ["browser", "tabs", "forms", "page-js", "submit", "clipboard"] as const;
@@ -39,13 +40,7 @@ export function grantsOf(tokens: Iterable<string>): ReadonlySet<Capability> {
  * runner and the SDK disagree, which is a bug, so it throws instead of being ignored.
  */
 export function heldGrants(): ReadonlySet<Capability> {
-  let raw = "";
-  try {
-    raw = Deno.env.get("TRANQUIL_GRANTS") ?? "";
-  } catch {
-    return new Set(); // ungranted env access: no capability grants
-  }
-  const names = raw.split(",").filter(Boolean);
+  const names = runEnv("TRANQUIL_GRANTS").split(",").filter(Boolean);
   const unknown = names.filter((name) => !isCapability(name));
   if (unknown.length) {
     throw new Error(`The runner granted ${unknown.join(", ")}, which this SDK does not know. Reload the window and run again.`);

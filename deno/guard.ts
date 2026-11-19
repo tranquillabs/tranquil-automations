@@ -5,18 +5,11 @@
 // onto another site or send a form by accident.
 import { FieldError } from "./forms/types.ts";
 import { heldGrants } from "./grants.ts";
-
-function env(name: string): string {
-  try {
-    return Deno.env.get(name) ?? "";
-  } catch {
-    return "";
-  }
-}
+import { runEnv } from "./run-env.ts";
 
 /** Host patterns from `@permissions sites=…`: exact hosts, or `*.example.com` (which also matches example.com). */
 export function allowedSites(): string[] {
-  return env("TRANQUIL_SITES").split(",").filter(Boolean);
+  return runEnv("TRANQUIL_SITES").split(",").filter(Boolean);
 }
 
 // The person's answer to the run's most recent ui.confirm. A submission needs a yes, so a script

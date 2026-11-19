@@ -3,6 +3,7 @@
 import { RpcSession } from "npm:capnweb@0.9.0";
 import { connectTransport } from "./transport.ts";
 import { type Capability, heldGrants } from "./grants.ts";
+import { runEnv } from "./run-env.ts";
 import type { TabDescriptor } from "./tabs.ts";
 import type { ActionEntry } from "./log.ts";
 
@@ -57,15 +58,7 @@ let hostPromise: Promise<HostApi> | null = null;
 export function host(): Promise<HostApi> {
   if (!hostPromise) {
     hostPromise = (async () => {
-      const url = Deno.env.get("TRANQUIL_RPC_URL");
-      const token = Deno.env.get("TRANQUIL_RPC_TOKEN");
-      if (!url || !token) {
-        throw new Error(
-          "Not running under the Tranquil runner (TRANQUIL_RPC_URL/TOKEN missing) — " +
-            "run this script from Tranquil with cmd-shift-R.",
-        );
-      }
-      const transport = await connectTransport(url, token);
+      const transport = await connectTransport(runEnv("TRANQUIL_RPC_URL"), runEnv("TRANQUIL_RPC_TOKEN"));
       const session = new RpcSession(transport);
       // The stub forwards each call to the host, which serves HostApi (see above).
       return session.getRemoteMain() as unknown as HostApi;

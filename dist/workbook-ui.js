@@ -20647,6 +20647,15 @@ var TONES = {
 	"timed-out": "error",
 	"not-started": "warning"
 };
+/**
+* The state an output block records, read from the workbook file: one of the runner's (each has a
+* label), "not-started", or null for anything else, which is shown as written.
+*/
+function outputState(raw, labels) {
+	if (raw === "not-started") return raw;
+	const isRunState = (s) => Object.hasOwn(labels, s);
+	return isRunState(raw) ? raw : null;
+}
 var messageOf = (e) => e instanceof Error ? e.message : String(e);
 function timeOf(ms) {
 	return new Date(ms).toLocaleTimeString([], {
@@ -20852,14 +20861,15 @@ function createWorkbookService(deps) {
 			body: block.body,
 			startOpen: ctx.newestThread.has(index)
 		};
-		const state = block.attrs.state || "";
+		const raw = block.attrs.state || "";
+		const state = outputState(raw, deps.stateLabels);
 		const { text, result, hasResult } = splitResult(block);
 		return {
 			kind: "output",
 			key: `output:${block.id}`,
 			script: node_path.default.basename(decodeURI(block.attrs.script || "")),
-			state: state === "not-started" ? "not started" : deps.stateLabels[state] || state,
-			tone: TONES[state] ?? "surface",
+			state: state === null ? raw : state === "not-started" ? "not started" : deps.stateLabels[state],
+			tone: (state && TONES[state]) ?? "surface",
 			time,
 			duration: block.attrs.ms ? deps.formatDuration(Number(block.attrs.ms)) : "",
 			text,

@@ -9,10 +9,17 @@
 // below therefore needs read access only to the script's own directory, keeping --allow-read
 // scoped exactly as the run manager computed it (no read grant for the runtime's own files).
 import "./mod.ts";
+import { RUN_ENV_NAMES, runEnv } from "./run-env.ts";
 
-const entry = Deno.env.get("TRANQUIL_ENTRY");
-if (!entry) {
-  console.error("Runner error: TRANQUIL_ENTRY is not set");
+// Every name the runner sets, read before the script starts: a run missing one refuses to start,
+// rather than failing partway through after the script has already done something.
+let entry = "";
+try {
+  for (const name of RUN_ENV_NAMES) runEnv(name);
+  entry = runEnv("TRANQUIL_ENTRY");
+  if (!entry) throw new Error("TRANQUIL_ENTRY is empty");
+} catch (e) {
+  console.error(`Runner error: ${e instanceof Error ? e.message : String(e)}`);
   Deno.exit(1);
 }
 

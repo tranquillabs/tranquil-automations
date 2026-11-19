@@ -1,6 +1,6 @@
 {
   "//": "Dev config for the SDK's own checks and tests. Scripts never use this file: the runner always passes the seeded ~/.tranquil/automations/deno.json.",
-  "//imports": "For this repo's tests only: they reach the SDK and lib as tranquil-automations/..., not by counting ../ from their own folder. The SDK itself never uses this map (user scripts import its files directly).",
+  "//imports": "For this repo's tests: they reach the SDK and lib as tranquil-automations/..., not by counting ../ from their own folder. The workbook UI's TypeScript uses it too, for type-only imports of the types it shares with lib/ (tranquil-automations/types/...), which its tests check and Vite drops from the build. The SDK itself never uses this map (user scripts import its files directly).",
   "imports": {
     "tranquil-automations/": "./"
   },

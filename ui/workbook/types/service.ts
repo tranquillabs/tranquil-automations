@@ -2,6 +2,12 @@
 // only. The service gets Pulsar and the rest of the package passed in (ServiceDeps), so it is
 // typed against just the parts it uses and can be tested with stand-ins.
 import type { ActivePhase } from "./run-machine.ts";
+import type { RunState } from "tranquil-automations/types/run-manager.ts";
+
+export type { RunState };
+
+/** The state an output block records: the run's, or "not-started" for a run that never began. */
+export type OutputState = RunState | "not-started";
 
 export interface Disposable {
   dispose(): void;
@@ -48,7 +54,7 @@ export interface RunRecord {
   runId: string;
   scriptPath: string;
   trigger: string;
-  state: string;
+  state: RunState;
   startedAt: number;
   endedAt?: number | null;
   output?: string;
@@ -85,7 +91,7 @@ export interface ServiceDeps {
   /** The run manager once the package has activated; null before. */
   runManager(): RunManagerLike | null;
   runText(run: RunRecord): string;
-  stateLabels: Readonly<Record<string, string>>;
+  stateLabels: Readonly<Record<RunState, string>>;
   formatDuration(ms: number): string;
   parseHeader(source: string): { grants: Grants };
   renderGrants(grants: Grants): string[];

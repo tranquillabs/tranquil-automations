@@ -9,17 +9,13 @@
 // Navigation destroys and recreates the page's default execution context; evaluate calls
 // retry once across that window — the exact bookkeeping puppeteer used to hide.
 
-// The host app's CDP port arrives via env (the run manager grants exactly this port).
-// Guarded: reading an ungranted var throws under --no-prompt, and a standalone import
-// (outside the runner) must not die at module load.
-function envCdpPort(): string {
-  try {
-    return Deno.env.get("TRANQUIL_CDP_PORT") ?? "9222";
-  } catch {
-    return "9222";
-  }
+import { runEnv } from "./run-env.ts";
+
+// The host app's CDP port arrives via env (the run manager grants exactly this port). Read on
+// use, with no default port: outside a run there is no app to connect to.
+function cdpBase(): string {
+  return `http://127.0.0.1:${runEnv("TRANQUIL_CDP_PORT")}`;
 }
-const CDP_BASE = `http://127.0.0.1:${envCdpPort()}`;
 
 // Debug runs get a much longer per-call timeout (ADR-0025). Code inside a `tab.evaluate()`
 // callback executes in the BROWSER page, not here, so the automation's own debugger cannot reach
@@ -29,14 +25,9 @@ const CDP_BASE = `http://127.0.0.1:${envCdpPort()}`;
 //
 // Only debug runs are affected: an ordinary run keeps the 30 s ceiling, so a genuinely stuck page
 // still fails fast instead of hanging the run.
-function isDebugRun(): boolean {
-  try {
-    return Deno.env.get("TRANQUIL_TRIGGER") === "debug";
-  } catch {
-    return false;
-  }
+function defaultCallTimeout(): number {
+  return runEnv("TRANQUIL_TRIGGER") === "debug" ? 10 * 60_000 : 30000;
 }
-const DEFAULT_CALL_TIMEOUT_MS = isDebugRun() ? 10 * 60_000 : 30000;
 
 export interface TargetInfo {
   id: string;
@@ -49,7 +40,7 @@ export interface TargetInfo {
 
 /** One entry per debuggable target, webview guests included (verified against this build). */
 export async function listTargets(): Promise<TargetInfo[]> {
-  const res = await fetch(`${CDP_BASE}/json`, { signal: AbortSignal.timeout(3000) });
+  const res = await fetch(`${cdpBase()}/json`, { signal: AbortSignal.timeout(3000) });
   if (!res.ok) throw new CdpError(`CDP target list failed: HTTP ${res.status}`);
   return await res.json();
 }
@@ -272,7 +263,7 @@ export class CdpConnection {
 
   send<M extends Command>(method: M, ...[params, options]: SendArgs<M>): Promise<Commands[M]["result"]> {
     if (this.#closed) return Promise.reject(new CdpError("CDP socket closed"));
-    const { timeout = DEFAULT_CALL_TIMEOUT_MS } = options ?? {};
+    const { timeout = defaultCallTimeout() } = options ?? {};
     const id = this.#nextId++;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -294,7 +285,7 @@ export class CdpConnection {
     return () => this.#handlers.get(method)?.delete(h);
   }
 
-  waitForEvent<E extends Event>(method: E, { timeout = DEFAULT_CALL_TIMEOUT_MS } = {}): Promise<Events[E]> {
+  waitForEvent<E extends Event>(method: E, { timeout = defaultCallTimeout() } = {}): Promise<Events[E]> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         off();
@@ -455,7 +446,7 @@ export class CdpConnection {
    * navigation (or use navigate(), which sequences it correctly).
    */
   async waitForLoad(
-    { waitUntil = "load", timeout = DEFAULT_CALL_TIMEOUT_MS }: {
+    { waitUntil = "load", timeout = defaultCallTimeout() }: {
       waitUntil?: "load" | "domcontentloaded";
       timeout?: number;
     } = {},
@@ -469,7 +460,7 @@ export class CdpConnection {
   /** Navigate the page and wait for load/domcontentloaded. */
   async navigate(
     url: string,
-    { waitUntil = "load", timeout = DEFAULT_CALL_TIMEOUT_MS }: {
+    { waitUntil = "load", timeout = defaultCallTimeout() }: {
       waitUntil?: "load" | "domcontentloaded";
       timeout?: number;
     } = {},

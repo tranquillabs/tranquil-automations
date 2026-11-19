@@ -138,7 +138,7 @@ export abstract class PageHandle {
       const where = await locate(await this.connection());
       url = where.href;
       requireSite(where.address, `${verb}${target !== undefined ? ` ${describeTarget(target)}` : ""}`);
-      if (check && checkingParts) {
+      if (check && checkingParts()) {
         outcome = "checked";
         return await check();
       }

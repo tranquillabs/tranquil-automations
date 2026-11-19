@@ -87,7 +87,7 @@ function setup(options: { modified?: boolean; hold?: boolean; refuse?: boolean; 
       runs.push(`${scriptPath} ${trigger}`);
       if (options.fail) return Promise.reject(new Error(options.fail));
       if (options.refuse) {
-        const refusal = { runId: "r", scriptPath, trigger, state: "cancelled", startedAt: 1_000 };
+        const refusal: RunRecord = { runId: "r", scriptPath, trigger, state: "cancelled", startedAt: 1_000 };
         for (const fn of onStart) fn({ ...refusal, output: "Permissions not approved\n" });
         return Promise.resolve(null);
       }

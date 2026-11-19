@@ -25,8 +25,10 @@ import type {
   FileModel,
   Grants,
   OutputModel,
+  OutputState,
   RunModel,
   RunRecord,
+  RunState,
   ScriptModel,
   ServiceDeps,
   WorkbookModel,
@@ -36,12 +38,22 @@ import type {
 const DEBOUNCE_MS = 75;
 const CUT_NOTE = "\n… (cut at 64 KB)";
 const RESULT_MARK = "Result:\n";
-const TONES: Record<string, OutputModel["tone"]> = {
+const TONES: Readonly<Partial<Record<OutputState, OutputModel["tone"]>>> = {
   succeeded: "success",
   failed: "error",
   "timed-out": "error",
   "not-started": "warning",
 };
+
+/**
+ * The state an output block records, read from the workbook file: one of the runner's (each has a
+ * label), "not-started", or null for anything else, which is shown as written.
+ */
+function outputState(raw: string, labels: Readonly<Record<RunState, string>>): OutputState | null {
+  if (raw === "not-started") return raw;
+  const isRunState = (s: string): s is RunState => Object.hasOwn(labels, s);
+  return isRunState(raw) ? raw : null;
+}
 
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -229,14 +241,15 @@ export function createWorkbookService(deps: ServiceDeps): WorkbookService {
         startOpen: ctx.newestThread.has(index),
       };
     }
-    const state = block.attrs.state || "";
+    const raw = block.attrs.state || "";
+    const state = outputState(raw, deps.stateLabels);
     const { text, result, hasResult } = splitResult(block);
     return {
       kind: "output",
       key: `output:${block.id}`,
       script: path.basename(decodeURI(block.attrs.script || "")),
-      state: state === "not-started" ? "not started" : deps.stateLabels[state] || state,
-      tone: TONES[state] ?? "surface",
+      state: state === null ? raw : state === "not-started" ? "not started" : deps.stateLabels[state],
+      tone: (state && TONES[state]) ?? "surface",
       time,
       duration: block.attrs.ms ? deps.formatDuration(Number(block.attrs.ms)) : "",
       text,

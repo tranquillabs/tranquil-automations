@@ -36,7 +36,9 @@
     @apply blockquote;
   }
   .markdown pre {
-    @apply pre;
+    /* Skeleton's shape and type, but the theme's colors: its own pre is near-black in light and
+       dark themes alike. */
+    @apply pre bg-surface-100-900 text-surface-950-50;
     white-space: pre-wrap;
     word-break: break-word;
   }

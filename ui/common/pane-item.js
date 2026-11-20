@@ -29,12 +29,14 @@ export class SveltePane {
    * the pane's element. `uri`, `title`, `iconName` and `allowedLocations` answer Pulsar's
    * questions, and `serialize(saved)` builds the saved state (with its `deserializer`) from what
    * the component's own `serialize()` returned. `slots` maps slot names to light-DOM elements, and
-   * `onDestroy` runs when the pane closes.
+   * `onDestroy` runs when the pane closes. `themeMode()` says whether the app's theme is "light" or
+   * "dark" (tranquil-browser lib/theme-mode.js), asked again whenever the active themes change.
    */
   constructor({
     component,
     props = {},
     css,
+    themeMode,
     className,
     uri,
     title,
@@ -62,7 +64,8 @@ export class SveltePane {
       this.element.append(el);
     }
     this.ui = mountInShadow(this.element, component, { ...props, setTitle: (t) => this.setTitle(t) }, css);
-    this.themes = atom.themes.onDidChangeActiveThemes(() => this.ui.syncMode());
+    this.ui.setMode(themeMode());
+    this.themes = atom.themes.onDidChangeActiveThemes(() => this.ui.setMode(themeMode()));
   }
 
   setTitle(title) {

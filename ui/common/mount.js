@@ -16,15 +16,16 @@ export function mountInShadow(host, Component, props, cssText) {
   shadow.append(root);
   const ui = {
     component: mount(Component, { target: root, props }),
-    /** Marks dark or light from the host's color-scheme, for Tailwind's `dark:` variant. */
-    syncMode() {
-      if (host.isConnected) {
-        root.dataset.mode = getComputedStyle(host).colorScheme.includes("dark") ? "dark" : "light";
-      }
+    /**
+     * Sets dark or light: the root's `data-mode` for Tailwind's `dark:` variant, and the host's
+     * `color-scheme`, which the shadow tree inherits for native controls and scrollbars.
+     * @param {"light" | "dark"} mode
+     */
+    setMode(mode) {
+      root.dataset.mode = mode;
+      host.style.colorScheme = mode;
     },
     destroy: () => unmount(ui.component),
   };
-  // The host's styles apply once it's in the document, after the pane opens.
-  requestAnimationFrame(ui.syncMode);
   return ui;
 }

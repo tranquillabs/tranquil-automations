@@ -19233,13 +19233,17 @@ function mountInShadow(host, Component, props, cssText) {
 			target: root,
 			props
 		}),
-		/** Marks dark or light from the host's color-scheme, for Tailwind's `dark:` variant. */
-		syncMode() {
-			if (host.isConnected) root.dataset.mode = getComputedStyle(host).colorScheme.includes("dark") ? "dark" : "light";
+		/**
+		* Sets dark or light: the root's `data-mode` for Tailwind's `dark:` variant, and the host's
+		* `color-scheme`, which the shadow tree inherits for native controls and scrollbars.
+		* @param {"light" | "dark"} mode
+		*/
+		setMode(mode) {
+			root.dataset.mode = mode;
+			host.style.colorScheme = mode;
 		},
 		destroy: () => unmount(ui.component)
 	};
-	requestAnimationFrame(ui.syncMode);
 	return ui;
 }
 // common/pane-item.js
@@ -19264,9 +19268,10 @@ var SveltePane = class {
 	* the pane's element. `uri`, `title`, `iconName` and `allowedLocations` answer Pulsar's
 	* questions, and `serialize(saved)` builds the saved state (with its `deserializer`) from what
 	* the component's own `serialize()` returned. `slots` maps slot names to light-DOM elements, and
-	* `onDestroy` runs when the pane closes.
+	* `onDestroy` runs when the pane closes. `themeMode()` says whether the app's theme is "light" or
+	* "dark" (tranquil-browser lib/theme-mode.js), asked again whenever the active themes change.
 	*/
-	constructor({ component, props = {}, css, className, uri, title, iconName, allowedLocations, serialize, slots = {}, onDestroy }) {
+	constructor({ component, props = {}, css, themeMode, className, uri, title, iconName, allowedLocations, serialize, slots = {}, onDestroy }) {
 		this.events = emitter();
 		this.onDestroyed = onDestroy;
 		this.uri = uri;
@@ -19287,7 +19292,8 @@ var SveltePane = class {
 			...props,
 			setTitle: (t) => this.setTitle(t)
 		}, css);
-		this.themes = atom.themes.onDidChangeActiveThemes(() => this.ui.syncMode());
+		this.ui.setMode(themeMode());
+		this.themes = atom.themes.onDidChangeActiveThemes(() => this.ui.setMode(themeMode()));
 	}
 	setTitle(title) {
 		if (!title || title === this.title) return;
@@ -21097,9 +21103,9 @@ function createWorkbookService(deps) {
 * The pane a `*.workbook.md` opens in. `saved` is what the pane last saved (its file and scroll);
 * `service` is the workbook service (service.ts); `composer` is the message box the loader made (a
 * Pulsar text editor, slotted in); `css` is the built stylesheet; `deserializer` is the name
-* Pulsar restores the pane by.
+* Pulsar restores the pane by; `themeMode` says whether the app's theme is light or dark.
 */
-function workbookPane(saved, { service, composer, css, deserializer }) {
+function workbookPane(saved, { service, composer, css, deserializer, themeMode }) {
 	const { filePath, scrollTop = 0 } = saved;
 	return new SveltePane({
 		component: Workbook,
@@ -21110,6 +21116,7 @@ function workbookPane(saved, { service, composer, css, deserializer }) {
 			composer
 		},
 		css,
+		themeMode,
 		className: "tranquil-workbook",
 		uri: filePath,
 		title: filePath.split(/[\\/]/).pop(),

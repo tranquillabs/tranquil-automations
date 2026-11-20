@@ -37,7 +37,8 @@
 }
 
 .tranquil-ui {
-  color-scheme: if((luminance(@base-background-color) < 50%), dark, light);
+  // No color-scheme here: whether the theme is dark is decided by the UI theme's name
+  // (tranquil-browser lib/theme-mode.js), and the mount sets it on the host (ui/common/mount.js).
 
   // Neutral surfaces run from the theme's lightest color to its darkest.
   @s50: mix(@tq-dark, @tq-light, 5%);

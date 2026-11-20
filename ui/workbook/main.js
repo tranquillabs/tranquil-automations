@@ -8,14 +8,15 @@ export { createWorkbookService } from "./service.ts";
  * The pane a `*.workbook.md` opens in. `saved` is what the pane last saved (its file and scroll);
  * `service` is the workbook service (service.ts); `composer` is the message box the loader made (a
  * Pulsar text editor, slotted in); `css` is the built stylesheet; `deserializer` is the name
- * Pulsar restores the pane by.
+ * Pulsar restores the pane by; `themeMode` says whether the app's theme is light or dark.
  */
-export function workbookPane(saved, { service, composer, css, deserializer }) {
+export function workbookPane(saved, { service, composer, css, deserializer, themeMode }) {
   const { filePath, scrollTop = 0 } = saved;
   return new SveltePane({
     component: Workbook,
     props: { filePath, scrollTop, service, composer },
     css,
+    themeMode,
     className: "tranquil-workbook",
     uri: filePath,
     title: filePath.split(/[\\/]/).pop(),

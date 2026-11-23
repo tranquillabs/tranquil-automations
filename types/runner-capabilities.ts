@@ -3,6 +3,7 @@
 // browser's tabs are in ./browser-pages.ts, and tranquil-rpc's session context and registration in
 // tranquil-rpc's own declarations. Types only.
 import type { BrowserItem, Webview } from "./browser-pages.ts";
+import type { RunTab } from "./run-tab.ts";
 
 /** A pane item that may be a text editor (ui.open reveals one that's already open). */
 export interface EditorItem {
@@ -48,6 +49,8 @@ export interface RunRecordLike {
 /** The run manager (lib/run-manager.js), as far as the capabilities use it. */
 export interface RunsLike {
   find(runId: string): RunRecordLike | undefined;
+  /** The browser tab the run's `tabs.active()` acts on, captured as it started (lib/run-tab.js). */
+  startTab(runId: string): RunTab | null;
   recordAction(runId: string, entry: unknown): void;
   setResult(runId: string, value: unknown): void;
 }

@@ -3,6 +3,7 @@
 // typed against just the parts it uses and can be tested with stand-ins.
 import type { ActivePhase } from "./run-machine.ts";
 import type { RunState } from "tranquil-automations/types/run-manager.ts";
+import type { TriggerString } from "tranquil-automations/types/triggers.ts";
 
 export type { RunState };
 
@@ -95,6 +96,8 @@ export interface ServiceDeps {
   formatDuration(ms: number): string;
   parseHeader(source: string): { grants: Grants };
   renderGrants(grants: Grants): string[];
+  /** A workbook step's run trigger (lib/triggers.js), from the workbook's path. */
+  workbookTrigger(path: string): TriggerString;
 }
 
 // --- Models: what the view draws, plain data ---------------------------------------------------

@@ -12,7 +12,7 @@ import { recordConfirm } from "./guard.ts";
 import { host, hostCall } from "./rpc.ts";
 
 export { context } from "./context.ts";
-export type { Trigger } from "./context.ts";
+export type { Trigger } from "./types/context.ts";
 export { Frame, Tab, tabs } from "./tabs.ts";
 export type { TabDescriptor } from "./tabs.ts";
 export { FieldError } from "./forms/types.ts";

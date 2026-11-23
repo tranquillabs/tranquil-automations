@@ -417,7 +417,7 @@ export function createWorkbookService(deps: ServiceDeps): WorkbookService {
     if (script.refused !== undefined) return;
 
     advance(filePath, k, "run");
-    const trigger = `workbook:${filePath}`;
+    const trigger = deps.workbookTrigger(filePath);
     const startedAt = Date.now();
     // A run that's refused (no Deno, a bad header, declined consent) resolves null; its record
     // arrives first, through onDidStartRun. A run that can't even be set up throws. (A holder,

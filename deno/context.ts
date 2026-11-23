@@ -2,16 +2,24 @@
 // `signal` aborts on protocol-level cancel (the CANCEL frame from the host); long-running
 // scripts can pass it to fetch/delay or check it between steps.
 import { runEnv } from "./run-env.ts";
+import type { Trigger, TriggerReaders, ValuedTriggerKind } from "./types/context.ts";
 
-export type Trigger =
-  | { kind: "manual" }
-  | { kind: "command"; name: string }
-  | { kind: "url"; url: string };
+export type { Trigger };
 
-function parseTrigger(raw: string): Trigger {
-  if (raw.startsWith("command:")) return { kind: "command", name: raw.slice(8) };
-  if (raw.startsWith("url:")) return { kind: "url", url: raw.slice(4) };
-  return { kind: "manual" };
+/** How each kind reads the value after its colon. */
+const READERS: TriggerReaders = {
+  command: (name) => ({ kind: "command", name }),
+  url: (url) => ({ kind: "url", url }),
+  workbook: (path) => ({ kind: "workbook", path, folder: path.replace(/\.workbook\.md$/, "") }),
+};
+
+const isValued = (kind: string): kind is ValuedTriggerKind => Object.hasOwn(READERS, kind);
+
+/** Reads `TRANQUIL_TRIGGER`'s string, `<kind>:<value>`; anything else is a manual run. */
+export function parseTrigger(raw: string): Trigger {
+  const [kind, ...rest] = raw.split(":");
+  const value = rest.join(":"); // everything after the first colon, a URL's own colons included
+  return isValued(kind) ? READERS[kind](value) : { kind: "manual" };
 }
 
 const cancelController = new AbortController();

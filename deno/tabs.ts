@@ -238,9 +238,10 @@ export class Frame extends PageHandle {
 
 export const tabs = {
   /**
-   * The tab the user is looking at (or most recently was). It never opens one: with no browser
-   * tab in front since the window loaded, it fails, and a script that goes to a known site
-   * opens it with `tabs.open(url)` instead.
+   * The page the person meant, decided when the run started: the browser tab with focus, else the
+   * one web page showing in a pane (beside the script, say). With no web page showing, or more
+   * than one, it fails rather than guess, and it never opens a tab: a script that works on a known
+   * site names it with `tabs.find(url)` or `tabs.open(url)`.
    */
   async active(): Promise<Tab> {
     return new Tab(await hostCall((h) => h.tabs.active(), { capability: "tabs", grant: "tabs" }));

@@ -21023,7 +21023,7 @@ function createWorkbookService(deps) {
 		const script = stepScript(filePath, block);
 		if (script.refused !== void 0) return;
 		advance(filePath, k, "run");
-		const trigger = `workbook:${filePath}`;
+		const trigger = deps.workbookTrigger(filePath);
 		const startedAt = Date.now();
 		const refusal = { record: null };
 		const sub = runManager.onDidStartRun((r) => {

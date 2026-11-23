@@ -4,6 +4,7 @@
 import { assert, assertEquals, assertStringIncludes } from "jsr:@std/assert@^1";
 import type { PermissionsModule } from "tranquil-automations/types/permissions.ts";
 import type { RunTextModule } from "tranquil-automations/types/run-text.ts";
+import type { TriggersModule } from "tranquil-automations/types/triggers.ts";
 import { createWorkbookService } from "tranquil-automations/ui/workbook/service.ts";
 import type {
   EditorLike,
@@ -28,6 +29,7 @@ function libModule<T>(file: string): T {
 }
 const perms = libModule<PermissionsModule>("permissions.js");
 const text = libModule<RunTextModule>("run-text.js");
+const triggers = libModule<TriggersModule>("triggers.js");
 
 const fence = "```";
 const WORKBOOK = [
@@ -119,6 +121,7 @@ function setup(options: { modified?: boolean; hold?: boolean; refuse?: boolean; 
     formatDuration: text.formatDuration,
     parseHeader: perms.parseHeader,
     renderGrants: perms.renderGrants,
+    workbookTrigger: triggers.workbookTrigger,
   });
   return { dir, doc, service, notices, runs, finish: gate.resolve };
 }
